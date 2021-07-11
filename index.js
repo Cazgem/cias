@@ -1,41 +1,62 @@
 //cias helper
 const OBSWebSocket = require('obs-websocket-js');
-const obs = new OBSWebSocket();
 const mysql = require(`mysql`);
-const polyphony = require('polyphony.js');
 module.exports = CiaS;
-function CiaS() {
-
+function CiaS(ciasOPTS, client) {
+    this.event_id = '';
+    this.mysql_db = mysql.createConnection({
+        host: ciasOPTS.MYSQLhost,
+        user: ciasOPTS.MYSQLuser,
+        password: ciasOPTS.MYSQLpassword,
+        database: ciasOPTS.MYSQLdatabase || ciasOPTS.database
+    });
+    this.client = client;
+    this.OBSaddress = ciasOPTS.OBSaddress;
+    this.password = ciasOPTS.OBSpassword;
+    this.eventsTable = ciasOPTS.EventsTable;
+    if (typeof ciasOPTS.MYSQLtable === "undefined") { this.CompetitorsTable = ciasOPTS.CompetitorsTable } else { this.CompetitorsTable = ciasOPTS.MYSQLtable };
+    if (typeof ciasOPTS.MYSQLtable_2 === "undefined") { this.UsersTable = ciasOPTS.UsersTable } else { this.UsersTable = ciasOPTS.MYSQLtable_2 };
 }
-CiaS.prototype.announce = function (client, msg, context, channel, ciasOPTS) {
-    if (context.mod || (context["user-id"] === context["room-id"])) {
-        const db = mysql.createConnection({
-            host: ciasOPTS.MYSQLhost,
-            user: ciasOPTS.MYSQLuser,
-            password: ciasOPTS.MYSQLpassword,
-            database: ciasOPTS.MYSQLdatabase
-        });
-        let sql = `SELECT name FROM ${ciasOPTS.MYSQLtable}`;
-        let response = db.query(sql, (err, result) => {
-            if (err) throw err;
-            console.log(err);
+CiaS.prototype.announce = function (msg, context) {
+    const that = this;
+    let sql = `SELECT name FROM CiaS_Participants`;
+    let response = this.mysql_db.query(sql, (err, result) => {
+        if (err) throw err;
+        console.log(err);
+        console.log(msg.slice(9));
+        Object.keys(result).forEach(function (id) {
+            that.client.action(result[id].name, msg.slice(9));
             console.log(msg.slice(9));
-            Object.keys(result).forEach(function (id) {
-                client.action(result[id].name, msg.slice(9));
-                console.log(msg.slice(9));
-            });
         });
-        db.end();
-    }
+    });
+    this.mysql_db.end();
 }
-CiaS.prototype.OBS_RefreshParticipants = async function (participant, ciasOPTS) {
-    const obs = new OBSWebSocket();
+CiaS.prototype.route = function (participant, msg, context) {
+    const that = this;
+    let sql = `SELECT name FROM CiaS_Participants WHERE number=${participant}`;
+    console.log(sql);
+    let response = this.mysql_db.query(sql, (err, result) => {
+        if (err) throw err;
+        console.log(err);
+        console.log(msg);
+        Object.keys(result).forEach(function (id) {
+            that.client.action(result[id].name, msg);
+            console.log(msg);
+        });
+    });
+    this.mysql_db.end();
+}
+CiaS.prototype.OBS_RefreshParticipants = async function (participant) {
     let source = `Participant ${participant} Screen`;
     let source2 = `Participant Name ${participant}`;
     let source3 = `NamePlate ${participant}`;
+    let source4 = `Participant ${participant} Picture`;
+    const that = this;
+    const obs = new OBSWebSocket();
+    console.log(`${this.OBSaddress} ${this.OBSpassword}`)
     obs.connect({
-        address: ciasOPTS.OBSaddress,
-        password: ciasOPTS.OBSpassword
+        address: this.OBSaddress,
+        password: this.OBSpassword
     })
         .then(data => {
             obs.send('SetSceneItemProperties', {
@@ -73,36 +94,89 @@ CiaS.prototype.OBS_RefreshParticipants = async function (participant, ciasOPTS) 
                 })
             }, 2000);
         })
+        .then(data => {
+            obs.send('SetSceneItemProperties', {
+                item: source4,
+                visible: false
+            })
+            setTimeout(() => {
+                obs.send('SetSceneItemProperties', {
+                    item: source4,
+                    visible: true
+                })
+            }, 2000);
+        })
         .catch(err => { // Promise convention dicates you have a catch on every chain.
             console.log(err);
         });
 }
-CiaS.prototype.addParticipant = function (number, name, channel, client, ciasOPTS) {
-    const db = mysql.createConnection({
-        host: ciasOPTS.MYSQLhost,
-        user: ciasOPTS.MYSQLuser,
-        password: ciasOPTS.MYSQLpassword,
-        database: ciasOPTS.MYSQLdatabase
-    });
-    let sql = `UPDATE ${ciasOPTS.MYSQLtable} SET name = "${name}" WHERE number = "${number}"`;
-    let query = db.query(sql, (err, result) => {
+CiaS.prototype.clear = function () {
+    let source = `Participant 1 Picture`;
+    let source2 = `Participant 2 Picture`;
+    let source3 = `Participant 3 Picture`;
+    let source4 = `Participant 4 Picture`;
+    const that = this;
+    const obs = new OBSWebSocket();
+    obs.connect({
+        address: this.OBSaddress,
+        password: this.OBSpassword
+    })
+        .then(data => {
+            obs.send('SetSceneItemProperties', {
+                item: source,
+                visible: false
+            })
+        })
+        .then(data => {
+            obs.send('SetSceneItemProperties', {
+                item: source2,
+                visible: false
+            })
+        })
+        .then(data => {
+            obs.send('SetSceneItemProperties', {
+                item: source3,
+                visible: false
+            })
+        })
+        .then(data => {
+            obs.send('SetSceneItemProperties', {
+                item: source4,
+                visible: false
+            })
+        })
+        .then(data => {
+            obs.send('SetSceneItemProperties', {
+                item: `Voting`,
+                visible: false
+            })
+        })
+        .catch(err => { // Promise convention dicates you have a catch on every chain.
+            console.log(err);
+        });
+}
+CiaS.prototype.addParticipant = function (number, name, channel) {
+    let sql = `UPDATE CiaS_Participants SET name = "${name}", WHERE number = "${number}"`;
+    let query = this.mysql_db.query(sql, (err, result) => {
         if (err) throw err;
     });
     console.log('Participant Added');
     console.log('Participant URL Identified');
-    this.updateURL(number, name, ciasOPTS);
+    this.updateURL(number, name);
     console.log("Preparing to Refresh nameplates");
-    this.OBS_RefreshParticipants(number, ciasOPTS);
-    client.action(channel, 'Edited Participant ' + number + ' information.');
-    client.action(name, `Hey there, ${name}! I've been sent by CiaS staff to help things run smoothly for you during this event. In order to ensure I can do my job, I need to be granted moderator privileges for the duration of the event. Thanks, and good luck!`);
-    console.log(channel, 'Edited Participant ' + number + ' information.');
-    db.end();
+    this.OBS_RefreshParticipants(number);
+    this.client.action(channel, 'Edited Participant ' + number + ' information.');
+    this.client.action(name, `Hey there, ${name}! I've been sent by CiaS staff to help things run smoothly for you during this event. In order to ensure I can do my job, I need to be granted moderator privileges for the duration of the event. Thanks, and good luck!`);
+    console.log(channel + ': Edited Participant ' + number + ' information.');
+    this.mysql_db.end();
 }
-CiaS.prototype.refreshParticipantNames = function (participant, ciasOPTS) {
+CiaS.prototype.refreshParticipantNames = function (participant) {
     let source = `Participant Name ${participant}`;
+    const that = this;
+    const obs = new OBSWebSocket();
     obs.connect({
-        address: ciasOPTS.OBSaddress,
-        password: ciasOPTS.OBSpassword
+        address: that.OBSaddress,
+        password: that.OBSpassword
     })
         .then(() => {
             console.log(`OBS Connection Established`);
@@ -123,144 +197,120 @@ CiaS.prototype.refreshParticipantNames = function (participant, ciasOPTS) {
             console.log(err);
         });
 }
-CiaS.prototype.updateURL = function (number, name, ciasOPTS) {
+CiaS.prototype.updateURL = function (number, name) {
+    let num = number;
+    let nam = name;
     console.log(`OBS Prepping for updateURL`);
+    const that = this;
     const obs = new OBSWebSocket();
     obs.connect({
-        address: `${ciasOPTS.OBSaddress}`,
-        password: `${ciasOPTS.OBSpassword}`
+        address: that.OBSaddress,
+        password: that.OBSpassword
     })
         .then(() => {
             console.log(`OBS Connection Established for updateURL`);
         })
         .then(() => {
             return obs.send('SetBrowserSourceProperties', {
-                source: `Participant ${number} Screen`,
-                url: `https://player.twitch.tv/?channel=${name}&parent=streamernews.example.com&muted=true`
+                source: `Participant ${num} Screen`,
+                url: `https://player.twitch.tv/?channel=${nam}&parent=streamernews.example.com&muted=true`
             })
         })
         .catch(err => { // Promise convention dicates you have a catch on every chain.
             console.log(err);
         });
 }
-CiaS.prototype.participants = function (client, params, context, channel, ciasOPTS) {
-    const db = mysql.createConnection({
-        host: ciasOPTS.MYSQLhost,
-        user: ciasOPTS.MYSQLuser,
-        password: ciasOPTS.MYSQLpassword,
-        database: ciasOPTS.MYSQLdatabase
-    });
-    if ((params[0] === 'edit') && ((context['user-type'] === ('mod')) || (context["display-name"] === "citiesinasnap"))) {
-        this.addParticipant(params[1], params[2], channel, client, ciasOPTS);
-    } else if ((params[0] === 'new') && ((context['user-type'] === ('mod')) || (context["display-name"] === "citiesinasnap"))) {
-        this.addParticipant(1, params[1], channel, client, ciasOPTS)
-        setTimeout(() => {
-            this.addParticipant(2, params[2], channel, client, ciasOPTS);
-        }, 1000);
-        setTimeout(() => {
-            this.addParticipant(3, params[3], channel, client, ciasOPTS);
-        }, 2000);
-        setTimeout(() => {
-            this.addParticipant(4, params[4], channel, client, ciasOPTS);
-        }, 3000);
-    } else if ((params[0] === 'join') && ((context['user-type'] === ('mod')) || (context["display-name"] === "citiesinasnap"))) {
-        client.action(channel, "This round's Participants are: ");
-        let sql = `SELECT * FROM ${ciasOPTS.MYSQLtable}`;
-        let response = db.query(sql, (err, result) => {
+CiaS.prototype.participants = function (params, context, channel) {
+    const that = this;
+    if ((params[0] === 'join') && ((context['user-type'] === ('mod')) || (context["display-name"] === "citiesinasnap"))) {
+        this.client.action(channel, "Joining Participants' Chats...");
+        let sql = `SELECT * FROM ` + this.CompetitorsTable + ` INNER JOIN ` + this.UsersTable;
+        let response = this.mysql_db.query(sql, (err, result) => {
             if (err) throw err;
             Object.keys(result).forEach(function (id) {
-                client.join(result[id].name);
+                this.client.join(result[id].name);
             });
         });
     } else if ((params[0] === 'part') && ((context['user-type'] === ('mod')) || (context["display-name"] === "citiesinasnap"))) {
-        client.action(channel, "This round's Participants are: ");
-        let sql = `SELECT * FROM ${ciasOPTS.MYSQLtable}`;
-        let response = db.query(sql, (err, result) => {
+        this.client.action(channel, "Parting Participants' Chats...");
+        let sql = `SELECT * FROM ` + this.CompetitorsTable + ` INNER JOIN ` + this.UsersTable;
+        let response = this.mysql_db.query(sql, (err, result) => {
             if (err) throw err;
             Object.keys(result).forEach(function (id) {
-                client.part(result[id].name);
+                that.client.part(result[id].name);
             });
         });
     } else {
-        console.log(ciasOPTS.MYSQLtable);
-        client.action(channel, "This round's Participants are: ");
-        let sql = `SELECT * FROM ${ciasOPTS.MYSQLtable}`;
-        let response = db.query(sql, (err, result) => {
-            if (err) throw err;
+        this.client.action(channel, "This round's Participants are: ");
+        let sql = `SELECT * FROM ` + this.CompetitorsTable + ` INNER JOIN ` + this.UsersTable + ` ON ` + this.CompetitorsTable + `.entrant = ` + this.UsersTable + `.id WHERE ` + this.CompetitorsTable + `.event = ` + this.event_id + ` ORDER BY ` + this.CompetitorsTable + `.id ASC`;
+        // let sql = `SELECT * FROM ` + this.CompetitorsTable;
+        let response = this.mysql_db.query(sql, (err, result) => {
+            if (err) console.log(err);
+            const that = this;
             Object.keys(result).forEach(function (id) {
-                client.action(channel, "Participant no. " + result[id].number + ": https://twitch.tv/" + result[id].name);
+                that.client.action(channel, result[id].name + ": https://twitch.tv/" + result[id].twitch);
             });
         });
     }
-    db.end();
+    // this.mysql_db.end();
 }
-CiaS.prototype.tenseconds = function (client, ciasOPTS) {
-    const db = mysql.createConnection({
-        host: ciasOPTS.MYSQLhost,
-        user: ciasOPTS.MYSQLuser,
-        password: ciasOPTS.MYSQLpassword,
-        database: ciasOPTS.MYSQLdatabase
-    });
-    let sql = `SELECT name FROM ${ciasOPTS.MYSQLtable}`;
-    let response = db.query(sql, (err, result) => {
+CiaS.prototype.tenseconds = function () {
+    const that = this;
+    let sql = `SELECT name FROM CiaS_Participants`;
+    let response = this.mysql_db.query(sql, (err, result) => {
         if (err) throw err;
         Object.keys(result).forEach(function (id) {
-            client.action(result[id].name, "cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 10 seconds remain! cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 ");
-            client.action(result[id].name, "cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 10 seconds remain! cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 ");
+            that.client.action(result[id].name, "cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 10 seconds remain! cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 ");
+            that.client.action(result[id].name, "cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 10 seconds remain! cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 ");
             setTimeout(() => {
-                client.action(result[id].name, "9 seconds");
+                that.client.action(result[id].name, "9 seconds");
             }, 1000);
             setTimeout(() => {
-                client.action(result[id].name, "8");
+                that.client.action(result[id].name, "8");
             }, 2000);
             setTimeout(() => {
-                client.action(result[id].name, "7");
+                that.client.action(result[id].name, "7");
             }, 3000);
             setTimeout(() => {
-                client.action(result[id].name, "6");
+                that.client.action(result[id].name, "6");
             }, 4000);
             setTimeout(() => {
-                client.action(result[id].name, "5");
+                that.client.action(result[id].name, "5");
             }, 5000);
             setTimeout(() => {
-                client.action(result[id].name, "4");
+                that.client.action(result[id].name, "4");
             }, 6000);
             setTimeout(() => {
-                client.action(result[id].name, "3");
+                that.client.action(result[id].name, "3");
             }, 7000);
             setTimeout(() => {
-                client.action(result[id].name, "2");
+                that.client.action(result[id].name, "2");
             }, 8000);
             setTimeout(() => {
-                client.action(result[id].name, "1");
+                that.client.action(result[id].name, "1");
             }, 9000);
             setTimeout(() => {
-                client.action(result[id].name, "cities1Stop cities1Stop cities1Stop All building Must stop! cities1Stop cities1Stop cities1Stop ");
+                that.client.action(result[id].name, "cities1Stop cities1Stop cities1Stop All building Must stop! cities1Stop cities1Stop cities1Stop ");
             }, 10000);
         });
     });
-    db.end();
+    that.mysql_db.end();
 }
-CiaS.prototype.starting = function (client, ciasOPTS) {
-    const db = mysql.createConnection({
-        host: ciasOPTS.MYSQLhost,
-        user: ciasOPTS.MYSQLuser,
-        password: ciasOPTS.MYSQLpassword,
-        database: ciasOPTS.MYSQLdatabase
-    });
-    let sql = `SELECT name FROM ${ciasOPTS.MYSQLtable}`;
-    let response = db.query(sql, (err, result) => {
+CiaS.prototype.starting = function () {
+    const that = this;
+    let sql = `SELECT name FROM CiaS_Participants`;
+    let response = this.mysql_db.query(sql, (err, result) => {
         if (err) throw err;
         Object.keys(result).forEach(function (id) {
             try {
-                client.action(result[id].name, "cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 30 seconds Until Start! cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1");
+                that.client.action(result[id].name, "cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 30 seconds Until Start! cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1");
 
             } catch (err) {
 
             }
             setTimeout(() => {
                 try {
-                    client.action(result[id].name, "cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 20 seconds Until Start! cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1");
+                    that.client.action(result[id].name, "cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 20 seconds Until Start! cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1");
 
                 } catch (err) {
 
@@ -268,7 +318,7 @@ CiaS.prototype.starting = function (client, ciasOPTS) {
             }, 10000);
             setTimeout(() => {
                 try {
-                    client.action(result[id].name, "cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 10 seconds Until Start! cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1");
+                    that.client.action(result[id].name, "cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 10 seconds Until Start! cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1");
 
                 } catch (err) {
 
@@ -276,7 +326,7 @@ CiaS.prototype.starting = function (client, ciasOPTS) {
             }, 20000);
             setTimeout(() => {
                 try {
-                    client.action(result[id].name, "cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 5 seconds Until Start! cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1");
+                    that.client.action(result[id].name, "cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 5 seconds Until Start! cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1");
 
                 } catch (err) {
 
@@ -284,7 +334,7 @@ CiaS.prototype.starting = function (client, ciasOPTS) {
             }, 25000);
             setTimeout(() => {
                 try {
-                    client.action(result[id].name, "cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 Begin! cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1");
+                    that.client.action(result[id].name, "cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 Begin! cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1");
 
                 } catch (err) {
 
@@ -292,16 +342,56 @@ CiaS.prototype.starting = function (client, ciasOPTS) {
             }, 30000);
         });
     });
-    db.end();
+    that.mysql_db.end();
 }
-CiaS.prototype.refreshParticipants = function (params, ciasOPTS) {
+CiaS.prototype.refreshParticipants = function (params) {
     if (params[0] === `all`) {
-        this.OBS_RefreshParticipants(1, ciasOPTS);
-        this.OBS_RefreshParticipants(2, ciasOPTS);
-        this.OBS_RefreshParticipants(3, ciasOPTS);
-        this.OBS_RefreshParticipants(4, ciasOPTS);
+        this.OBS_RefreshParticipants(1);
+        this.OBS_RefreshParticipants(2);
+        this.OBS_RefreshParticipants(3);
+        this.OBS_RefreshParticipants(4);
     } else {
-        this.OBS_RefreshParticipants(params[0], ciasOPTS);
+        this.OBS_RefreshParticipants(params[0]);
     }
+
+}
+CiaS.prototype.winner = function (participant, callback) {
+    let source = `Participant ${participant} Picture`;
+    let sceneName = `Focus ${participant}`;
+    const that = this;
+    const obs = new OBSWebSocket();
+    obs.connect({
+        address: that.OBSaddress,
+        password: that.OBSpassword
+    })
+        .then(() => {
+            console.log(`OBS Connection Established`);
+        })
+        .then(() => {
+            obs.send('SetSceneItemProperties', {
+                item: `ParticipantPhotos`,
+                visible: true
+            })
+        })
+        .then(() => {
+            obs.send('SetSceneItemProperties', {
+                item: source,
+                visible: true
+            })
+            setTimeout(() => {
+                console.log(`Found a different scene! Switching to Scene: ${sceneName}`);
+                obs.send('SetCurrentScene', {
+                    'scene-name': sceneName
+                });
+            }, 10000);
+        })
+        .then(() => {
+            return callback(null, participant);
+        })
+        .catch(err => { // Promise convention dicates you have a catch on every chain.
+            console.log(err);
+        });
+}
+CiaS.prototype.guest = function (msg, callback) {
 
 }
