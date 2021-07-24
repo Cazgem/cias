@@ -4,7 +4,8 @@ const mysql = require(`mysql`);
 module.exports = CiaS;
 function CiaS(ciasOPTS, client) {
     this.event_id = '';
-    this.mysql_db = mysql.createConnection({
+    this.mysql_db = mysql.createPool({
+        connectionLimit: 10,
         host: ciasOPTS.MYSQLhost,
         user: ciasOPTS.MYSQLuser,
         password: ciasOPTS.MYSQLpassword,
@@ -16,20 +17,18 @@ function CiaS(ciasOPTS, client) {
     this.eventsTable = ciasOPTS.EventsTable;
     if (typeof ciasOPTS.MYSQLtable === "undefined") { this.CompetitorsTable = ciasOPTS.CompetitorsTable } else { this.CompetitorsTable = ciasOPTS.MYSQLtable };
     if (typeof ciasOPTS.MYSQLtable_2 === "undefined") { this.UsersTable = ciasOPTS.UsersTable } else { this.UsersTable = ciasOPTS.MYSQLtable_2 };
+    this.competitors_sql = `SELECT * FROM ` + this.CompetitorsTable + ` INNER JOIN ` + this.UsersTable + ` ON ` + this.CompetitorsTable + `.entrant = ` + this.UsersTable + `.id WHERE ` + this.CompetitorsTable + `.event = ` + this.event_id + ` ORDER BY ` + this.CompetitorsTable + `.id ASC`;
 }
 CiaS.prototype.announce = function (msg, context) {
     const that = this;
-    let sql = `SELECT name FROM CiaS_Participants`;
+    let sql = `SELECT * FROM ` + this.CompetitorsTable + ` INNER JOIN ` + this.UsersTable + ` ON ` + this.CompetitorsTable + `.entrant = ` + this.UsersTable + `.id WHERE ` + this.CompetitorsTable + `.event = ` + this.event_id + ` ORDER BY ` + this.CompetitorsTable + `.id ASC`;
     let response = this.mysql_db.query(sql, (err, result) => {
         if (err) throw err;
-        console.log(err);
-        console.log(msg.slice(9));
+        console.log(`Announcing: ${msg.slice(9)}`);
         Object.keys(result).forEach(function (id) {
             that.client.action(result[id].name, msg.slice(9));
-            console.log(msg.slice(9));
         });
     });
-    this.mysql_db.end();
 }
 CiaS.prototype.route = function (participant, msg, context) {
     const that = this;
@@ -37,11 +36,8 @@ CiaS.prototype.route = function (participant, msg, context) {
     console.log(sql);
     let response = this.mysql_db.query(sql, (err, result) => {
         if (err) throw err;
-        console.log(err);
-        console.log(msg);
         Object.keys(result).forEach(function (id) {
             that.client.action(result[id].name, msg);
-            console.log(msg);
         });
     });
     this.mysql_db.end();
@@ -220,47 +216,45 @@ CiaS.prototype.updateURL = function (number, name) {
             console.log(err);
         });
 }
-CiaS.prototype.participants = function (params, context, channel) {
+CiaS.prototype.join = function () {
     const that = this;
-    if ((params[0] === 'join') && ((context['user-type'] === ('mod')) || (context["display-name"] === "citiesinasnap"))) {
-        this.client.action(channel, "Joining Participants' Chats...");
-        let sql = `SELECT * FROM ` + this.CompetitorsTable + ` INNER JOIN ` + this.UsersTable;
-        let response = this.mysql_db.query(sql, (err, result) => {
-            if (err) throw err;
-            Object.keys(result).forEach(function (id) {
-                this.client.join(result[id].name);
-            });
+    let sql = `SELECT * FROM ` + this.CompetitorsTable + ` INNER JOIN ` + this.UsersTable + ` ON ` + this.CompetitorsTable + `.entrant = ` + this.UsersTable + `.id WHERE ` + this.CompetitorsTable + `.event = ` + this.event_id + ` ORDER BY ` + this.CompetitorsTable + `.id ASC`;
+    let response = this.mysql_db.query(sql, (err, result) => {
+        if (err) throw err;
+        Object.keys(result).forEach(function (id) {
+            that.client.join(result[id].name);
         });
-    } else if ((params[0] === 'part') && ((context['user-type'] === ('mod')) || (context["display-name"] === "citiesinasnap"))) {
-        this.client.action(channel, "Parting Participants' Chats...");
-        let sql = `SELECT * FROM ` + this.CompetitorsTable + ` INNER JOIN ` + this.UsersTable;
-        let response = this.mysql_db.query(sql, (err, result) => {
-            if (err) throw err;
-            Object.keys(result).forEach(function (id) {
-                that.client.part(result[id].name);
-            });
+    });
+}
+CiaS.prototype.part = function () {
+    const that = this;
+    let sql = `SELECT * FROM ` + this.CompetitorsTable + ` INNER JOIN ` + this.UsersTable + ` ON ` + this.CompetitorsTable + `.entrant = ` + this.UsersTable + `.id WHERE ` + this.CompetitorsTable + `.event = ` + this.event_id + ` ORDER BY ` + this.CompetitorsTable + `.id ASC`;
+    let response = this.mysql_db.query(sql, (err, result) => {
+        if (err) throw err;
+        Object.keys(result).forEach(function (id) {
+            that.client.part(result[id].name);
         });
-    } else {
-        this.client.action(channel, "This round's Participants are: ");
-        let sql = `SELECT * FROM ` + this.CompetitorsTable + ` INNER JOIN ` + this.UsersTable + ` ON ` + this.CompetitorsTable + `.entrant = ` + this.UsersTable + `.id WHERE ` + this.CompetitorsTable + `.event = ` + this.event_id + ` ORDER BY ` + this.CompetitorsTable + `.id ASC`;
-        // let sql = `SELECT * FROM ` + this.CompetitorsTable;
-        let response = this.mysql_db.query(sql, (err, result) => {
-            if (err) console.log(err);
-            const that = this;
-            Object.keys(result).forEach(function (id) {
-                that.client.action(channel, result[id].name + ": https://twitch.tv/" + result[id].twitch);
-            });
+    });
+}
+CiaS.prototype.participants = function (channel) {
+    const that = this;
+    this.client.action(channel, "This round's Participants are: ");
+    let sql = `SELECT * FROM ` + this.CompetitorsTable + ` INNER JOIN ` + this.UsersTable + ` ON ` + this.CompetitorsTable + `.entrant = ` + this.UsersTable + `.id WHERE ` + this.CompetitorsTable + `.event = ` + this.event_id + ` ORDER BY ` + this.CompetitorsTable + `.id ASC`;
+    let response = this.mysql_db.query(sql, (err, result) => {
+        if (err) console.log(err);
+        const that = this;
+        Object.keys(result).forEach(function (id) {
+            that.client.action(channel, result[id].name + ": https://twitch.tv/" + result[id].twitch);
         });
-    }
+    });
     // this.mysql_db.end();
 }
 CiaS.prototype.tenseconds = function () {
     const that = this;
-    let sql = `SELECT name FROM CiaS_Participants`;
+    let sql = `SELECT * FROM ` + this.CompetitorsTable + ` INNER JOIN ` + this.UsersTable + ` ON ` + this.CompetitorsTable + `.entrant = ` + this.UsersTable + `.id WHERE ` + this.CompetitorsTable + `.event = ` + this.event_id + ` ORDER BY ` + this.CompetitorsTable + `.id ASC`;
     let response = this.mysql_db.query(sql, (err, result) => {
         if (err) throw err;
         Object.keys(result).forEach(function (id) {
-            that.client.action(result[id].name, "cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 10 seconds remain! cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 ");
             that.client.action(result[id].name, "cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 10 seconds remain! cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 ");
             setTimeout(() => {
                 that.client.action(result[id].name, "9 seconds");
@@ -294,11 +288,10 @@ CiaS.prototype.tenseconds = function () {
             }, 10000);
         });
     });
-    that.mysql_db.end();
 }
 CiaS.prototype.starting = function () {
     const that = this;
-    let sql = `SELECT name FROM CiaS_Participants`;
+    let sql = `SELECT * FROM ` + this.CompetitorsTable + ` INNER JOIN ` + this.UsersTable + ` ON ` + this.CompetitorsTable + `.entrant = ` + this.UsersTable + `.id WHERE ` + this.CompetitorsTable + `.event = ` + this.event_id + ` ORDER BY ` + this.CompetitorsTable + `.id ASC`;
     let response = this.mysql_db.query(sql, (err, result) => {
         if (err) throw err;
         Object.keys(result).forEach(function (id) {
@@ -342,7 +335,6 @@ CiaS.prototype.starting = function () {
             }, 30000);
         });
     });
-    that.mysql_db.end();
 }
 CiaS.prototype.refreshParticipants = function (params) {
     if (params[0] === `all`) {
