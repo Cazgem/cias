@@ -1,6 +1,5 @@
 //cias helper
 const mysql = require(`mysql`);
-const path = require('path');
 const chalk = require('chalk');
 const NodeCache = require("node-cache");
 const participants = new NodeCache();
@@ -19,10 +18,7 @@ function CiaS(ciasOPTS, client) {
         database: ciasOPTS.MYSQLdatabase || ciasOPTS.database
     });
     this.client = client;
-    this.OBSaddress = ciasOPTS.OBSaddress;
     this.channel = ciasOPTS.channel;
-    this.mongopath = ciasOPTS.mongopath;
-    this.password = ciasOPTS.OBSpassword;
     this.eventsTable = ciasOPTS.EventsTable;
     if (typeof ciasOPTS.MYSQLtable === "undefined") { this.CompetitorsTable = ciasOPTS.CompetitorsTable } else { this.CompetitorsTable = ciasOPTS.MYSQLtable };
     if (typeof ciasOPTS.MYSQLtable_2 === "undefined") { this.UsersTable = ciasOPTS.UsersTable } else { this.UsersTable = ciasOPTS.MYSQLtable_2 };

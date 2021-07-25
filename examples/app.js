@@ -21,9 +21,9 @@ client.on('connected', async () => {
 client.on('message', function (channel, context, msg, self) {
     const chan = channel.slice(1).toLowerCase();
     if (msg.toLowerCase().includes('cazgem')) {
-        console.log(chalk.red(`--------------------------NOTICE!-----------------------------`));
+        console.log(chalk.red(`-------------------------NOTICE!----------------------------`));
     } else if (msg.toLowerCase().includes('polyphony')) {
-        console.log(chalk.cyan(`--------------------------NOTICE!-----------------------------`));
+        console.log(chalk.cyan(`-------------------------NOTICE!----------------------------`));
     }
     if (self) { return; }
     let params = msg.slice(1).split(' ');
