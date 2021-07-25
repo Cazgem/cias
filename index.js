@@ -4,6 +4,8 @@ const mysql = require(`mysql`);
 module.exports = CiaS;
 function CiaS(ciasOPTS, client) {
     this.event_id = '';
+    this.event_start = '';
+    this.event_end = '';
     this.mysql_db = mysql.createPool({
         connectionLimit: 10,
         host: ciasOPTS.MYSQLhost,
@@ -13,6 +15,7 @@ function CiaS(ciasOPTS, client) {
     });
     this.client = client;
     this.OBSaddress = ciasOPTS.OBSaddress;
+    this.channel = ciasOPTS.channel;
     this.password = ciasOPTS.OBSpassword;
     this.eventsTable = ciasOPTS.EventsTable;
     if (typeof ciasOPTS.MYSQLtable === "undefined") { this.CompetitorsTable = ciasOPTS.CompetitorsTable } else { this.CompetitorsTable = ciasOPTS.MYSQLtable };
@@ -26,7 +29,19 @@ CiaS.prototype.announce = function (msg, context) {
         if (err) throw err;
         console.log(`Announcing: ${msg.slice(9)}`);
         Object.keys(result).forEach(function (id) {
-            that.client.action(result[id].name, msg.slice(9));
+            that.client.action(result[id].twitch, msg.slice(9));
+        });
+    });
+}
+CiaS.prototype.announce_all = function (msg, context) {
+    const that = this;
+    this.client.action(this.channel, msg.slice(9));
+    let sql = `SELECT * FROM ` + this.CompetitorsTable + ` INNER JOIN ` + this.UsersTable + ` ON ` + this.CompetitorsTable + `.entrant = ` + this.UsersTable + `.id WHERE ` + this.CompetitorsTable + `.event = ` + this.event_id + ` ORDER BY ` + this.CompetitorsTable + `.id ASC`;
+    let response = this.mysql_db.query(sql, (err, result) => {
+        if (err) throw err;
+        console.log(`Announcing: ${msg.slice(9)}`);
+        Object.keys(result).forEach(function (id) {
+            that.client.action(result[id].twitch, msg.slice(9));
         });
     });
 }
@@ -37,7 +52,7 @@ CiaS.prototype.route = function (participant, msg, context) {
     let response = this.mysql_db.query(sql, (err, result) => {
         if (err) throw err;
         Object.keys(result).forEach(function (id) {
-            that.client.action(result[id].name, msg);
+            that.client.action(result[id].twitch, msg);
         });
     });
     this.mysql_db.end();
@@ -222,7 +237,7 @@ CiaS.prototype.join = function () {
     let response = this.mysql_db.query(sql, (err, result) => {
         if (err) throw err;
         Object.keys(result).forEach(function (id) {
-            that.client.join(result[id].name);
+            that.client.join(result[id].twitch);
         });
     });
 }
@@ -232,7 +247,7 @@ CiaS.prototype.part = function () {
     let response = this.mysql_db.query(sql, (err, result) => {
         if (err) throw err;
         Object.keys(result).forEach(function (id) {
-            that.client.part(result[id].name);
+            that.client.part(result[id].twitch);
         });
     });
 }
@@ -255,36 +270,36 @@ CiaS.prototype.tenseconds = function () {
     let response = this.mysql_db.query(sql, (err, result) => {
         if (err) throw err;
         Object.keys(result).forEach(function (id) {
-            that.client.action(result[id].name, "cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 10 seconds remain! cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 ");
+            that.client.action(result[id].twitch, "cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 10 seconds remain! cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 ");
             setTimeout(() => {
-                that.client.action(result[id].name, "9 seconds");
+                that.client.action(result[id].twitch, "9 seconds");
             }, 1000);
             setTimeout(() => {
-                that.client.action(result[id].name, "8");
+                that.client.action(result[id].twitch, "8");
             }, 2000);
             setTimeout(() => {
-                that.client.action(result[id].name, "7");
+                that.client.action(result[id].twitch, "7");
             }, 3000);
             setTimeout(() => {
-                that.client.action(result[id].name, "6");
+                that.client.action(result[id].twitch, "6");
             }, 4000);
             setTimeout(() => {
-                that.client.action(result[id].name, "5");
+                that.client.action(result[id].twitch, "5");
             }, 5000);
             setTimeout(() => {
-                that.client.action(result[id].name, "4");
+                that.client.action(result[id].twitch, "4");
             }, 6000);
             setTimeout(() => {
-                that.client.action(result[id].name, "3");
+                that.client.action(result[id].twitch, "3");
             }, 7000);
             setTimeout(() => {
-                that.client.action(result[id].name, "2");
+                that.client.action(result[id].twitch, "2");
             }, 8000);
             setTimeout(() => {
-                that.client.action(result[id].name, "1");
+                that.client.action(result[id].twitch, "1");
             }, 9000);
             setTimeout(() => {
-                that.client.action(result[id].name, "cities1Stop cities1Stop cities1Stop All building Must stop! cities1Stop cities1Stop cities1Stop ");
+                that.client.action(result[id].twitch, "cities1Stop cities1Stop cities1Stop All building Must stop! cities1Stop cities1Stop cities1Stop ");
             }, 10000);
         });
     });
@@ -296,14 +311,14 @@ CiaS.prototype.starting = function () {
         if (err) throw err;
         Object.keys(result).forEach(function (id) {
             try {
-                that.client.action(result[id].name, "cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 30 seconds Until Start! cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1");
+                that.client.action(result[id].twitch, "cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 30 seconds Until Start! cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1");
 
             } catch (err) {
 
             }
             setTimeout(() => {
                 try {
-                    that.client.action(result[id].name, "cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 20 seconds Until Start! cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1");
+                    that.client.action(result[id].twitch, "cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 20 seconds Until Start! cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1");
 
                 } catch (err) {
 
@@ -311,7 +326,7 @@ CiaS.prototype.starting = function () {
             }, 10000);
             setTimeout(() => {
                 try {
-                    that.client.action(result[id].name, "cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 10 seconds Until Start! cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1");
+                    that.client.action(result[id].twitch, "cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 10 seconds Until Start! cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1");
 
                 } catch (err) {
 
@@ -319,7 +334,7 @@ CiaS.prototype.starting = function () {
             }, 20000);
             setTimeout(() => {
                 try {
-                    that.client.action(result[id].name, "cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 5 seconds Until Start! cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1");
+                    that.client.action(result[id].twitch, "cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 5 seconds Until Start! cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1");
 
                 } catch (err) {
 
@@ -327,7 +342,7 @@ CiaS.prototype.starting = function () {
             }, 25000);
             setTimeout(() => {
                 try {
-                    that.client.action(result[id].name, "cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 Begin! cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1");
+                    that.client.action(result[id].twitch, "cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 Begin! cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1");
 
                 } catch (err) {
 
