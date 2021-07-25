@@ -10,6 +10,7 @@ function CiaS(ciasOPTS, client) {
     this.event_id = null;
     this.event_start = '';
     this.event_end = '';
+    this.time_remaining = null;
     this.mysql_db = mysql.createPool({
         connectionLimit: 10,
         host: ciasOPTS.MYSQLhost,
@@ -45,12 +46,81 @@ CiaS.prototype.timer = async function (channel, i) {
     i = i * 60;
     var myVar = setInterval(function () {
         i--;
-        console.log(`${i} seconds remaining`);
-        if (i == 10) {
+        this.time_remaining = i;
+        if (i == (105 * 60)) {
+            that.timeRemaining(`1 Hour, 45 minutes remain!`, function (err, res) {
+                that.announce(channel, res);
+            });
+        } else if (i == (90 * 60)) {
+            that.timeRemaining(`1 Hour, 30 minutes remain!`, function (err, res) {
+                that.announce(channel, res);
+            });
+        } else if (i == (75 * 60)) {
+            that.timeRemaining(`1 Hour, 15 minutes remain!`, function (err, res) {
+                that.announce(channel, res);
+            });
+        } else if (i == (60 * 60)) {
+            that.timeRemaining(`60 minutes remain!`, function (err, res) {
+                that.announce(channel, res);
+            });
+        } else if (i == (45 * 60)) {
+            that.timeRemaining(`45 minutes remain!`, function (err, res) {
+                that.announce(channel, res);
+            });
+        } else if (i == (30 * 60)) {
+            that.timeRemaining(`30 minutes remain!`, function (err, res) {
+                that.announce(channel, res);
+            });
+        } else if (i == (15 * 60)) {
+            that.timeRemaining(`15 minutes remain!`, function (err, res) {
+                that.announce(channel, res);
+            });
+        } else if (i == (10 * 60)) {
+            that.timeRemaining(`10 minutes remain!`, function (err, res) {
+                that.announce(channel, res);
+            });
+        } else if (i == (5 * 60)) {
+            that.timeRemaining(`5 minutes remain!`, function (err, res) {
+                that.announce(channel, res);
+            });
+        } else if (i == (3 * 60)) {
+            that.timeRemaining(`3 minutes remain!`, function (err, res) {
+                that.announce(channel, res);
+            });
+        } else if (i == (2 * 60)) {
+            that.timeRemaining(`2 minutes remain!`, function (err, res) {
+                that.announce(channel, res);
+            });
+        } else if (i == (1.5 * 60)) {
+            that.timeRemaining(`90 seconds left!`, function (err, res) {
+                that.announce(channel, res);
+            });
+        } else if (i == (1 * 60)) {
+            that.timeRemaining(`60 seconds!`, function (err, res) {
+                that.announce(channel, res);
+            });
+        } else if (i == (45)) {
+            that.timeRemaining(`45 seconds left!`, function (err, res) {
+                that.announce(channel, res);
+            });
+        } else if (i == (30)) {
+            that.timeRemaining(`30 seconds left!`, function (err, res) {
+                that.announce(channel, res);
+            });
+        } else if (i == (15)) {
+            that.timeRemaining(`15 seconds!`, function (err, res) {
+                that.announce(channel, res);
+            });
+        } else if (i == 10) {
             that.tenseconds(channel);
             clearInterval(myVar);
         }
     }, 1000);
+}
+CiaS.prototype.timeRemaining = function (timeleft, callback) {
+    const that = this;
+    let res = `cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 ${timeleft} cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1`;
+    return callback(null, res);
 }
 CiaS.prototype.route = function (participant, msg) {
     const that = this;
