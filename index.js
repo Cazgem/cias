@@ -7,7 +7,7 @@ const participants = new NodeCache();
 module.exports = CiaS;
 function CiaS(ciasOPTS, client) {
     console.log(chalk.blue(`CiaS Module Ready!`));
-    this.event_id = '';
+    this.event_id = null;
     this.event_start = '';
     this.event_end = '';
     this.mysql_db = mysql.createPool({
@@ -26,13 +26,6 @@ function CiaS(ciasOPTS, client) {
     if (typeof ciasOPTS.MYSQLtable === "undefined") { this.CompetitorsTable = ciasOPTS.CompetitorsTable } else { this.CompetitorsTable = ciasOPTS.MYSQLtable };
     if (typeof ciasOPTS.MYSQLtable_2 === "undefined") { this.UsersTable = ciasOPTS.UsersTable } else { this.UsersTable = ciasOPTS.MYSQLtable_2 };
     this.competitors_sql = `SELECT * FROM ` + this.CompetitorsTable + ` INNER JOIN ` + this.UsersTable + ` ON ` + this.CompetitorsTable + `.entrant = ` + this.UsersTable + `.id WHERE ` + this.CompetitorsTable + `.event = ` + this.event_id + ` ORDER BY ` + this.CompetitorsTable + `.id ASC`;
-}
-CiaS.prototype.createDB = function () {
-    MongoClient.connect(this.mongopath, function (err, db) {
-        if (err) throw err;
-        console.log("Database created!");
-        db.close();
-    });
 }
 CiaS.prototype.announce = function (channel, msg) {
     const that = this;
@@ -59,17 +52,12 @@ CiaS.prototype.timer = async function (channel, i) {
         }
     }, 1000);
 }
-CiaS.prototype.route = function (participant, msg, context) {
+CiaS.prototype.route = function (participant, msg) {
     const that = this;
-    let sql = `SELECT name FROM CiaS_Participants WHERE number=${participant}`;
-    console.log(sql);
-    let response = this.mysql_db.query(sql, (err, result) => {
-        if (err) throw err;
-        Object.keys(result).forEach(function (id) {
-            that.client.action(result[id].twitch, msg);
-        });
+    this.fetch(participant, function (err, res) {
+        console.log(chalk.yellow(`Routing to Participant ${participant}: ${msg}`));
+        that.client.action(res.twitch, msg);
     });
-    this.mysql_db.end();
 }
 CiaS.prototype.fetch = function (participant, callback) {
     const that = this;
@@ -118,23 +106,30 @@ CiaS.prototype.fetchall = function (callback) {
         return callback(null, value);
     }
 }
+//////////TODO: Check if User is regular Polyphony Channel/////////////
 CiaS.prototype.join = function () {
     const that = this;
-    let sql = `SELECT * FROM ` + this.CompetitorsTable + ` INNER JOIN ` + this.UsersTable + ` ON ` + this.CompetitorsTable + `.entrant = ` + this.UsersTable + `.id WHERE ` + this.CompetitorsTable + `.event = ` + this.event_id + ` ORDER BY ` + this.CompetitorsTable + `.id ASC`;
-    let response = this.mysql_db.query(sql, (err, result) => {
-        if (err) throw err;
-        Object.keys(result).forEach(function (id) {
-            that.client.join(result[id].twitch);
+    this.fetchall(function (err, res) {
+        Object.keys(res).forEach(function (id) {
+            try {
+                that.client.join(res[id].twitch);
+            } catch (err) {
+
+            }
         });
     });
 }
+//////////TODO: Check if User is regular Polyphony Channel/////////////
 CiaS.prototype.part = function () {
     const that = this;
-    let sql = `SELECT * FROM ` + this.CompetitorsTable + ` INNER JOIN ` + this.UsersTable + ` ON ` + this.CompetitorsTable + `.entrant = ` + this.UsersTable + `.id WHERE ` + this.CompetitorsTable + `.event = ` + this.event_id + ` ORDER BY ` + this.CompetitorsTable + `.id ASC`;
-    let response = this.mysql_db.query(sql, (err, result) => {
-        if (err) throw err;
-        Object.keys(result).forEach(function (id) {
-            that.client.part(result[id].twitch);
+    this.fetchall(function (err, res) {
+        Object.keys(res).forEach(function (id) {
+            try {
+                that.client.part(res[id].twitch);
+            } catch (err) {
+                console.log(chalk.red(`-----------ERROR-----------`));
+                console.log(`${err}`);
+            }
         });
     });
 }
@@ -146,9 +141,13 @@ CiaS.prototype.participant = function (participant, callback) {
 }
 CiaS.prototype.participants = function (callback) {
     const that = this;
-    this.fetchall(function (err, res) {
-        return callback(null, res);
-    });
+    if (this.event_id == null) {
+        return callback(`No Event Selected!`, null);
+    } else {
+        this.fetchall(function (err, res) {
+            return callback(null, res);
+        });
+    }
 }
 CiaS.prototype.tenseconds = function (channel) {
     const that = this;
@@ -260,55 +259,4 @@ CiaS.prototype.starting = function (channel, length) {
 
         }
     }, 30000);
-}
-CiaS.prototype.refreshParticipants = function (params) {
-    if (params[0] === `all`) {
-        this.OBS_RefreshParticipants(1);
-        this.OBS_RefreshParticipants(2);
-        this.OBS_RefreshParticipants(3);
-        this.OBS_RefreshParticipants(4);
-    } else {
-        this.OBS_RefreshParticipants(params[0]);
-    }
-
-}
-CiaS.prototype.winner = function (participant, callback) {
-    let source = `Participant ${participant} Picture`;
-    let sceneName = `Focus ${participant}`;
-    const that = this;
-    const obs = new OBSWebSocket();
-    obs.connect({
-        address: that.OBSaddress,
-        password: that.OBSpassword
-    })
-        .then(() => {
-            console.log(`OBS Connection Established`);
-        })
-        .then(() => {
-            obs.send('SetSceneItemProperties', {
-                item: `ParticipantPhotos`,
-                visible: true
-            })
-        })
-        .then(() => {
-            obs.send('SetSceneItemProperties', {
-                item: source,
-                visible: true
-            })
-            setTimeout(() => {
-                console.log(`Found a different scene! Switching to Scene: ${sceneName}`);
-                obs.send('SetCurrentScene', {
-                    'scene-name': sceneName
-                });
-            }, 10000);
-        })
-        .then(() => {
-            return callback(null, participant);
-        })
-        .catch(err => { // Promise convention dicates you have a catch on every chain.
-            console.log(err);
-        });
-}
-CiaS.prototype.guest = function (msg, callback) {
-
 }
