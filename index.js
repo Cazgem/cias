@@ -1,8 +1,16 @@
 //cias helper
-const OBSWebSocket = require('obs-websocket-js');
+// const OBSWebSocket = require('obs-websocket-js');
 const mysql = require(`mysql`);
+// const mongo = require('mongo');
+const path = require('path');
+const chalk = require('chalk');
+const participantSchema = require('./schemas/participant-schema')
+const MongoClient = require('mongodb').MongoClient;
+const NodeCache = require("node-cache");
+const participants = new NodeCache();
 module.exports = CiaS;
 function CiaS(ciasOPTS, client) {
+    console.log(chalk.blue(`CiaS Module Ready!`));
     this.event_id = '';
     this.event_start = '';
     this.event_end = '';
@@ -16,11 +24,19 @@ function CiaS(ciasOPTS, client) {
     this.client = client;
     this.OBSaddress = ciasOPTS.OBSaddress;
     this.channel = ciasOPTS.channel;
+    this.mongopath = ciasOPTS.mongopath;
     this.password = ciasOPTS.OBSpassword;
     this.eventsTable = ciasOPTS.EventsTable;
     if (typeof ciasOPTS.MYSQLtable === "undefined") { this.CompetitorsTable = ciasOPTS.CompetitorsTable } else { this.CompetitorsTable = ciasOPTS.MYSQLtable };
     if (typeof ciasOPTS.MYSQLtable_2 === "undefined") { this.UsersTable = ciasOPTS.UsersTable } else { this.UsersTable = ciasOPTS.MYSQLtable_2 };
     this.competitors_sql = `SELECT * FROM ` + this.CompetitorsTable + ` INNER JOIN ` + this.UsersTable + ` ON ` + this.CompetitorsTable + `.entrant = ` + this.UsersTable + `.id WHERE ` + this.CompetitorsTable + `.event = ` + this.event_id + ` ORDER BY ` + this.CompetitorsTable + `.id ASC`;
+}
+CiaS.prototype.createDB = function () {
+    MongoClient.connect(this.mongopath, function (err, db) {
+        if (err) throw err;
+        console.log("Database created!");
+        db.close();
+    });
 }
 CiaS.prototype.announce = function (msg, context) {
     const that = this;
@@ -35,15 +51,28 @@ CiaS.prototype.announce = function (msg, context) {
 }
 CiaS.prototype.announce_all = function (msg, context) {
     const that = this;
-    this.client.action(this.channel, msg.slice(9));
+    this.client.action(this.channel, msg);
     let sql = `SELECT * FROM ` + this.CompetitorsTable + ` INNER JOIN ` + this.UsersTable + ` ON ` + this.CompetitorsTable + `.entrant = ` + this.UsersTable + `.id WHERE ` + this.CompetitorsTable + `.event = ` + this.event_id + ` ORDER BY ` + this.CompetitorsTable + `.id ASC`;
     let response = this.mysql_db.query(sql, (err, result) => {
         if (err) throw err;
-        console.log(`Announcing: ${msg.slice(9)}`);
+        console.log(`Announcing: ${msg}`);
         Object.keys(result).forEach(function (id) {
-            that.client.action(result[id].twitch, msg.slice(9));
+            that.client.action(result[id].twitch, msg);
         });
     });
+}
+CiaS.prototype.timer = async function (i) {
+    const that = this;
+    console.log(`${i} minutes remaining`);
+    i = i * 60;
+    var myVar = setInterval(function () {
+        i--;
+        console.log(`${i} seconds remaining`);
+        if (i == 10) {
+            that.tenseconds();
+            clearInterval(myVar);
+        }
+    }, 1000);
 }
 CiaS.prototype.route = function (participant, msg, context) {
     const that = this;
@@ -56,6 +85,30 @@ CiaS.prototype.route = function (participant, msg, context) {
         });
     });
     this.mysql_db.end();
+}
+CiaS.prototype.fetch = function (participant, callback) {
+    const that = this;
+    console.log(chalk.blue(`Fetching Participant ${participant}... `));
+    let value = participants.get(`${participant}`);
+    if (value == undefined) {
+        console.log(chalk.red(`No Participants Found. Fetching from remote db.....`));
+        let sql = `SELECT * FROM ` + that.CompetitorsTable + ` INNER JOIN ` + that.UsersTable + ` ON ` + that.CompetitorsTable + `.entrant = ` + that.UsersTable + `.id WHERE ` + that.CompetitorsTable + `.event = ` + that.event_id + ` ORDER BY ` + that.CompetitorsTable + `.id ASC`;
+        let response = that.mysql_db.query(sql, (err, result) => {
+            if (err) throw err;
+            Object.keys(result).forEach(function (id, i) {
+                let count = i + 1;
+                obj = { id: `${result[id].id}`, name: `${result[id].name}`, twitch: `${result[id].twitch}` };
+                success = participants.set(`${i + 1}`, obj, (24 * 3600));
+                if (participant == count) {
+                    console.log(chalk.green(`Remote Participant Found!`));
+                    return callback(null, result[id]);
+                }
+            });
+        });
+    } else {
+        console.log(chalk.green(`Local Participant Found!`));
+        return callback(null, value);
+    }
 }
 CiaS.prototype.OBS_RefreshParticipants = async function (participant) {
     let source = `Participant ${participant} Screen`;
