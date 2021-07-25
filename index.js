@@ -30,15 +30,19 @@ function CiaS(ciasOPTS, client) {
 }
 CiaS.prototype.announce = function (channel, msg) {
     const that = this;
-    this.fetchall(function (err, res) {
-        console.log(chalk.yellow(`Announcement: ${msg}`));
-        if (channel !== null) {
-            that.client.action(channel, msg);
-        }
-        Object.keys(res).forEach(function (id) {
-            that.client.action(res[id].twitch, msg);
+    try {
+        this.fetchall(function (err, res) {
+            console.log(chalk.yellow(`Announcement: ${msg}`));
+            if (channel !== null) {
+                that.client.action(channel, msg);
+            }
+            Object.keys(res).forEach(function (id) {
+                that.client.action(res[id].twitch, msg);
+            });
         });
-    });
+    } catch (err) {
+
+    }
 }
 CiaS.prototype.timer = async function (channel, i) {
     const that = this;
@@ -46,7 +50,6 @@ CiaS.prototype.timer = async function (channel, i) {
     i = i * 60;
     var myVar = setInterval(function () {
         i--;
-        this.time_remaining = i;
         if (i == (105 * 60)) {
             that.timeRemaining(`1 Hour, 45 minutes remain!`, function (err, res) {
                 that.announce(channel, res);
@@ -176,7 +179,6 @@ CiaS.prototype.fetchall = function (callback) {
         return callback(null, value);
     }
 }
-//////////TODO: Check if User is regular Polyphony Channel/////////////
 CiaS.prototype.join = function () {
     const that = this;
     this.fetchall(function (err, res) {
@@ -189,7 +191,6 @@ CiaS.prototype.join = function () {
         });
     });
 }
-//////////TODO: Check if User is regular Polyphony Channel/////////////
 CiaS.prototype.part = function () {
     const that = this;
     this.fetchall(function (err, res) {
@@ -255,78 +256,34 @@ CiaS.prototype.tenseconds = function (channel) {
 }
 CiaS.prototype.starting = function (channel, length) {
     const that = this;
-    try {
-        that.announce(channel, "cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 30 seconds Until Start! cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1");
-
-    } catch (err) {
-
-    }
+    that.announce(channel, "cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 30 seconds Until Start! cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1");
     setTimeout(() => {
-        try {
-            that.announce(channel, "cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 20 seconds Until Start! cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1");
-
-        } catch (err) {
-
-        }
+        that.announce(channel, "cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 20 seconds Until Start! cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1");
     }, 10000);
     setTimeout(() => {
-        try {
-            that.announce(channel, "cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 10 seconds Until Start! cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1");
-
-        } catch (err) {
-
-        }
+        that.announce(channel, "cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 10 seconds Until Start! cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1");
     }, 20000);
     setTimeout(() => {
-        try {
-            that.announce(channel, "cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 5 seconds Until Start! cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1");
-
-        } catch (err) {
-
-        }
+        that.announce(channel, "cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 5 seconds Until Start! cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1");
     }, 25000);
     setTimeout(() => {
-        try {
-            that.announce(channel, "4 seconds Until Start!");
-
-        } catch (err) {
-
-        }
+        that.announce(channel, "4 seconds Until Start!");
     }, 26000);
     setTimeout(() => {
-        try {
-            that.announce(channel, "3 seconds Until Start!");
-
-        } catch (err) {
-
-        }
+        that.announce(channel, "3 seconds Until Start!");
     }, 27000);
     setTimeout(() => {
-        try {
-            that.announce(channel, "2 seconds Until Start!");
-
-        } catch (err) {
-
-        }
+        that.announce(channel, "2 seconds Until Start!");
     }, 28000);
     setTimeout(() => {
-        try {
-            that.announce(channel, "cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 1 seconds Until Start! cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1");
-
-        } catch (err) {
-
-        }
+        that.announce(channel, "cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 1 seconds Until Start! cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1");
     }, 29000);
     setTimeout(() => {
-        try {
-            that.announce(channel, "cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 Begin! cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1");
-            if (length !== null) {
-                that.timer(channel, length);
-            } else {
-                that.timer(channel, 120);
-            }
-        } catch (err) {
-
+        that.announce(channel, "cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 Begin! cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1");
+        if (length !== null) {
+            that.timer(channel, length);
+        } else {
+            that.timer(channel, 120);
         }
     }, 30000);
 }
