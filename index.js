@@ -186,7 +186,8 @@ CiaS.prototype.join = function () {
             try {
                 that.client.join(res[id].twitch);
             } catch (err) {
-
+                console.log(chalk.red(`-----------ERROR-----------`));
+                console.log(`${err}`);
             }
         });
     });
@@ -206,9 +207,13 @@ CiaS.prototype.part = function () {
 }
 CiaS.prototype.participant = function (participant, callback) {
     const that = this;
-    this.fetch(participant, function (err, res) {
-        return callback(null, res);
-    });
+    if (this.event_id == null) {
+        return callback(`No Event Selected!`, null);
+    } else {
+        this.fetch(participant, function (err, res) {
+            return callback(null, res);
+        });
+    }
 }
 CiaS.prototype.participants = function (callback) {
     const that = this;
