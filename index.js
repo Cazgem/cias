@@ -1,11 +1,7 @@
 //cias helper
-// const OBSWebSocket = require('obs-websocket-js');
 const mysql = require(`mysql`);
-// const mongo = require('mongo');
 const path = require('path');
 const chalk = require('chalk');
-const participantSchema = require('./schemas/participant-schema')
-const MongoClient = require('mongodb').MongoClient;
 const NodeCache = require("node-cache");
 const participants = new NodeCache();
 module.exports = CiaS;
@@ -38,26 +34,15 @@ CiaS.prototype.createDB = function () {
         db.close();
     });
 }
-CiaS.prototype.announce = function (msg, context) {
+CiaS.prototype.announce = function (channel, msg) {
     const that = this;
-    let sql = `SELECT * FROM ` + this.CompetitorsTable + ` INNER JOIN ` + this.UsersTable + ` ON ` + this.CompetitorsTable + `.entrant = ` + this.UsersTable + `.id WHERE ` + this.CompetitorsTable + `.event = ` + this.event_id + ` ORDER BY ` + this.CompetitorsTable + `.id ASC`;
-    let response = this.mysql_db.query(sql, (err, result) => {
-        if (err) throw err;
-        console.log(`Announcing: ${msg.slice(9)}`);
-        Object.keys(result).forEach(function (id) {
-            that.client.action(result[id].twitch, msg.slice(9));
-        });
-    });
-}
-CiaS.prototype.announce_all = function (msg, context) {
-    const that = this;
-    this.client.action(this.channel, msg);
-    let sql = `SELECT * FROM ` + this.CompetitorsTable + ` INNER JOIN ` + this.UsersTable + ` ON ` + this.CompetitorsTable + `.entrant = ` + this.UsersTable + `.id WHERE ` + this.CompetitorsTable + `.event = ` + this.event_id + ` ORDER BY ` + this.CompetitorsTable + `.id ASC`;
-    let response = this.mysql_db.query(sql, (err, result) => {
-        if (err) throw err;
-        console.log(`Announcing: ${msg}`);
-        Object.keys(result).forEach(function (id) {
-            that.client.action(result[id].twitch, msg);
+    this.fetchall(function (err, res) {
+        console.log(`Announcement: ${msg}`);
+        if (channel !== null) {
+            that.client.action(channel, msg);
+        }
+        Object.keys(res).forEach(function (id) {
+            that.client.action(res[id].twitch, msg);
         });
     });
 }
@@ -110,179 +95,28 @@ CiaS.prototype.fetch = function (participant, callback) {
         return callback(null, value);
     }
 }
-CiaS.prototype.OBS_RefreshParticipants = async function (participant) {
-    let source = `Participant ${participant} Screen`;
-    let source2 = `Participant Name ${participant}`;
-    let source3 = `NamePlate ${participant}`;
-    let source4 = `Participant ${participant} Picture`;
+CiaS.prototype.fetchall = function (callback) {
     const that = this;
-    const obs = new OBSWebSocket();
-    console.log(`${this.OBSaddress} ${this.OBSpassword}`)
-    obs.connect({
-        address: this.OBSaddress,
-        password: this.OBSpassword
-    })
-        .then(data => {
-            obs.send('SetSceneItemProperties', {
-                item: source,
-                visible: false
-            })
-            setTimeout(() => {
-                obs.send('SetSceneItemProperties', {
-                    item: source,
-                    visible: true
-                })
-            }, 2000);
-        })
-        .then(data => {
-            obs.send('SetSceneItemProperties', {
-                item: source2,
-                visible: false
-            })
-            setTimeout(() => {
-                obs.send('SetSceneItemProperties', {
-                    item: source2,
-                    visible: true
-                })
-            }, 2000);
-        })
-        .then(data => {
-            obs.send('SetSceneItemProperties', {
-                item: source3,
-                visible: false
-            })
-            setTimeout(() => {
-                obs.send('SetSceneItemProperties', {
-                    item: source3,
-                    visible: true
-                })
-            }, 2000);
-        })
-        .then(data => {
-            obs.send('SetSceneItemProperties', {
-                item: source4,
-                visible: false
-            })
-            setTimeout(() => {
-                obs.send('SetSceneItemProperties', {
-                    item: source4,
-                    visible: true
-                })
-            }, 2000);
-        })
-        .catch(err => { // Promise convention dicates you have a catch on every chain.
-            console.log(err);
+    console.log(chalk.blue(`Fetching Participants... `));
+    let value = participants.get(`1`);
+    if (value == undefined) {
+        console.log(chalk.red(`No Participants Found. Fetching from remote db.....`));
+        let sql = `SELECT * FROM ` + that.CompetitorsTable + ` INNER JOIN ` + that.UsersTable + ` ON ` + that.CompetitorsTable + `.entrant = ` + that.UsersTable + `.id WHERE ` + that.CompetitorsTable + `.event = ` + that.event_id + ` ORDER BY ` + that.CompetitorsTable + `.id ASC`;
+        let response = that.mysql_db.query(sql, (err, result) => {
+            if (err) throw err;
+            console.log(chalk.green(`Remote Participants Found!`));
+            Object.keys(result).forEach(function (id, i) {
+                let count = i + 1;
+                obj = { id: `${result[id].id}`, name: `${result[id].name}`, twitch: `${result[id].twitch}` };
+                success = participants.set(`${i + 1}`, obj, (24 * 3600));
+            });
+            return callback(null, result);
         });
-}
-CiaS.prototype.clear = function () {
-    let source = `Participant 1 Picture`;
-    let source2 = `Participant 2 Picture`;
-    let source3 = `Participant 3 Picture`;
-    let source4 = `Participant 4 Picture`;
-    const that = this;
-    const obs = new OBSWebSocket();
-    obs.connect({
-        address: this.OBSaddress,
-        password: this.OBSpassword
-    })
-        .then(data => {
-            obs.send('SetSceneItemProperties', {
-                item: source,
-                visible: false
-            })
-        })
-        .then(data => {
-            obs.send('SetSceneItemProperties', {
-                item: source2,
-                visible: false
-            })
-        })
-        .then(data => {
-            obs.send('SetSceneItemProperties', {
-                item: source3,
-                visible: false
-            })
-        })
-        .then(data => {
-            obs.send('SetSceneItemProperties', {
-                item: source4,
-                visible: false
-            })
-        })
-        .then(data => {
-            obs.send('SetSceneItemProperties', {
-                item: `Voting`,
-                visible: false
-            })
-        })
-        .catch(err => { // Promise convention dicates you have a catch on every chain.
-            console.log(err);
-        });
-}
-CiaS.prototype.addParticipant = function (number, name, channel) {
-    let sql = `UPDATE CiaS_Participants SET name = "${name}", WHERE number = "${number}"`;
-    let query = this.mysql_db.query(sql, (err, result) => {
-        if (err) throw err;
-    });
-    console.log('Participant Added');
-    console.log('Participant URL Identified');
-    this.updateURL(number, name);
-    console.log("Preparing to Refresh nameplates");
-    this.OBS_RefreshParticipants(number);
-    this.client.action(channel, 'Edited Participant ' + number + ' information.');
-    this.client.action(name, `Hey there, ${name}! I've been sent by CiaS staff to help things run smoothly for you during this event. In order to ensure I can do my job, I need to be granted moderator privileges for the duration of the event. Thanks, and good luck!`);
-    console.log(channel + ': Edited Participant ' + number + ' information.');
-    this.mysql_db.end();
-}
-CiaS.prototype.refreshParticipantNames = function (participant) {
-    let source = `Participant Name ${participant}`;
-    const that = this;
-    const obs = new OBSWebSocket();
-    obs.connect({
-        address: that.OBSaddress,
-        password: that.OBSpassword
-    })
-        .then(() => {
-            console.log(`OBS Connection Established`);
-        })
-        .then(() => {
-            obs.send('SetSceneItemProperties', {
-                item: source,
-                visible: false
-            })
-            setTimeout(() => {
-                obs.send('SetSceneItemProperties', {
-                    item: source,
-                    visible: true
-                })
-            }, 1000);
-        })
-        .catch(err => { // Promise convention dicates you have a catch on every chain.
-            console.log(err);
-        });
-}
-CiaS.prototype.updateURL = function (number, name) {
-    let num = number;
-    let nam = name;
-    console.log(`OBS Prepping for updateURL`);
-    const that = this;
-    const obs = new OBSWebSocket();
-    obs.connect({
-        address: that.OBSaddress,
-        password: that.OBSpassword
-    })
-        .then(() => {
-            console.log(`OBS Connection Established for updateURL`);
-        })
-        .then(() => {
-            return obs.send('SetBrowserSourceProperties', {
-                source: `Participant ${num} Screen`,
-                url: `https://player.twitch.tv/?channel=${nam}&parent=streamernews.example.com&muted=true`
-            })
-        })
-        .catch(err => { // Promise convention dicates you have a catch on every chain.
-            console.log(err);
-        });
+    } else {
+        console.log(chalk.green(`Local Participants Found!`));
+        value = participants.mget(["1", "2", "3", "4"]);
+        return callback(null, value);
+    }
 }
 CiaS.prototype.join = function () {
     const that = this;
@@ -304,23 +138,21 @@ CiaS.prototype.part = function () {
         });
     });
 }
-CiaS.prototype.participants = function (channel) {
+CiaS.prototype.participant = function (participant, callback) {
     const that = this;
-    this.client.action(channel, "This round's Participants are: ");
-    let sql = `SELECT * FROM ` + this.CompetitorsTable + ` INNER JOIN ` + this.UsersTable + ` ON ` + this.CompetitorsTable + `.entrant = ` + this.UsersTable + `.id WHERE ` + this.CompetitorsTable + `.event = ` + this.event_id + ` ORDER BY ` + this.CompetitorsTable + `.id ASC`;
-    let response = this.mysql_db.query(sql, (err, result) => {
-        if (err) console.log(err);
-        const that = this;
-        Object.keys(result).forEach(function (id) {
-            that.client.action(channel, result[id].name + ": https://twitch.tv/" + result[id].twitch);
-        });
+    this.fetch(participant, function (err, res) {
+        return callback(null, res);
     });
-    // this.mysql_db.end();
+}
+CiaS.prototype.participants = function (callback) {
+    const that = this;
+    this.fetchall(function (err, res) {
+        return callback(null, res);
+    });
 }
 CiaS.prototype.tenseconds = function () {
     const that = this;
-    let sql = `SELECT * FROM ` + this.CompetitorsTable + ` INNER JOIN ` + this.UsersTable + ` ON ` + this.CompetitorsTable + `.entrant = ` + this.UsersTable + `.id WHERE ` + this.CompetitorsTable + `.event = ` + this.event_id + ` ORDER BY ` + this.CompetitorsTable + `.id ASC`;
-    let response = this.mysql_db.query(sql, (err, result) => {
+    this.fetchall(function (err, result) {
         if (err) throw err;
         Object.keys(result).forEach(function (id) {
             that.client.action(result[id].twitch, "cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 10 seconds remain! cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 ");
