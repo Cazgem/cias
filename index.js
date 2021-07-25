@@ -228,61 +228,27 @@ CiaS.prototype.participants = function (callback) {
 CiaS.prototype.tenseconds = function (channel) {
     const that = this;
     that.announce(channel, "cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 10 seconds remain! cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 ");
-    setTimeout(() => {
-        that.announce(channel, "9 seconds");
-    }, 1000);
-    setTimeout(() => {
-        that.announce(channel, "8");
-    }, 2000);
-    setTimeout(() => {
-        that.announce(channel, "7");
-    }, 3000);
-    setTimeout(() => {
-        that.announce(channel, "6");
-    }, 4000);
-    setTimeout(() => {
-        that.announce(channel, "5");
-    }, 5000);
-    setTimeout(() => {
-        that.announce(channel, "4");
-    }, 6000);
-    setTimeout(() => {
-        that.announce(channel, "3");
-    }, 7000);
-    setTimeout(() => {
-        that.announce(channel, "2");
-    }, 8000);
-    setTimeout(() => {
-        that.announce(channel, "1");
-    }, 9000);
-    setTimeout(() => {
-        that.announce(channel, "cities1Stop cities1Stop cities1Stop All building Must stop! cities1Stop cities1Stop cities1Stop ");
-    }, 10000);
+    setTimeout(() => { that.announce(channel, "9 seconds"); }, 1000);
+    setTimeout(() => { that.announce(channel, "8"); }, 2000);
+    setTimeout(() => { that.announce(channel, "7"); }, 3000);
+    setTimeout(() => { that.announce(channel, "6"); }, 4000);
+    setTimeout(() => { that.announce(channel, "5"); }, 5000);
+    setTimeout(() => { that.announce(channel, "4"); }, 6000);
+    setTimeout(() => { that.announce(channel, "3"); }, 7000);
+    setTimeout(() => { that.announce(channel, "2"); }, 8000);
+    setTimeout(() => { that.announce(channel, "1"); }, 9000);
+    setTimeout(() => { that.announce(channel, "cities1Stop cities1Stop cities1Stop All building Must stop! cities1Stop cities1Stop cities1Stop "); }, 10000);
 }
 CiaS.prototype.starting = function (channel, length) {
     const that = this;
     that.announce(channel, "cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 30 seconds Until Start! cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1");
-    setTimeout(() => {
-        that.announce(channel, "cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 20 seconds Until Start! cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1");
-    }, 10000);
-    setTimeout(() => {
-        that.announce(channel, "cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 10 seconds Until Start! cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1");
-    }, 20000);
-    setTimeout(() => {
-        that.announce(channel, "cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 5 seconds Until Start! cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1");
-    }, 25000);
-    setTimeout(() => {
-        that.announce(channel, "4 seconds Until Start!");
-    }, 26000);
-    setTimeout(() => {
-        that.announce(channel, "3 seconds Until Start!");
-    }, 27000);
-    setTimeout(() => {
-        that.announce(channel, "2 seconds Until Start!");
-    }, 28000);
-    setTimeout(() => {
-        that.announce(channel, "cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 1 seconds Until Start! cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1");
-    }, 29000);
+    setTimeout(() => { that.announce(channel, "cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 20 seconds Until Start! cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1"); }, 10000);
+    setTimeout(() => { that.announce(channel, "cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 10 seconds Until Start! cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1"); }, 20000);
+    setTimeout(() => { that.announce(channel, "cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 5 seconds Until Start! cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1"); }, 25000);
+    setTimeout(() => { that.announce(channel, "4 seconds Until Start!"); }, 26000);
+    setTimeout(() => { that.announce(channel, "3 seconds Until Start!"); }, 27000);
+    setTimeout(() => { that.announce(channel, "2 seconds Until Start!"); }, 28000);
+    setTimeout(() => { that.announce(channel, "cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 1 seconds Until Start! cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1"); }, 29000);
     setTimeout(() => {
         that.announce(channel, "cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 Begin! cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1");
         if (length !== null) {
