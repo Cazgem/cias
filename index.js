@@ -37,7 +37,7 @@ CiaS.prototype.createDB = function () {
 CiaS.prototype.announce = function (channel, msg) {
     const that = this;
     this.fetchall(function (err, res) {
-        console.log(`Announcement: ${msg}`);
+        console.log(chalk.yellow(`Announcement: ${msg}`));
         if (channel !== null) {
             that.client.action(channel, msg);
         }
@@ -46,7 +46,7 @@ CiaS.prototype.announce = function (channel, msg) {
         });
     });
 }
-CiaS.prototype.timer = async function (i) {
+CiaS.prototype.timer = async function (channel, i) {
     const that = this;
     console.log(`${i} minutes remaining`);
     i = i * 60;
@@ -54,7 +54,7 @@ CiaS.prototype.timer = async function (i) {
         i--;
         console.log(`${i} seconds remaining`);
         if (i == 10) {
-            that.tenseconds();
+            that.tenseconds(channel);
             clearInterval(myVar);
         }
     }, 1000);
@@ -150,44 +150,39 @@ CiaS.prototype.participants = function (callback) {
         return callback(null, res);
     });
 }
-CiaS.prototype.tenseconds = function () {
+CiaS.prototype.tenseconds = function (channel) {
     const that = this;
-    this.fetchall(function (err, result) {
-        if (err) throw err;
-        Object.keys(result).forEach(function (id) {
-            that.client.action(result[id].twitch, "cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 10 seconds remain! cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 ");
-            setTimeout(() => {
-                that.client.action(result[id].twitch, "9 seconds");
-            }, 1000);
-            setTimeout(() => {
-                that.client.action(result[id].twitch, "8");
-            }, 2000);
-            setTimeout(() => {
-                that.client.action(result[id].twitch, "7");
-            }, 3000);
-            setTimeout(() => {
-                that.client.action(result[id].twitch, "6");
-            }, 4000);
-            setTimeout(() => {
-                that.client.action(result[id].twitch, "5");
-            }, 5000);
-            setTimeout(() => {
-                that.client.action(result[id].twitch, "4");
-            }, 6000);
-            setTimeout(() => {
-                that.client.action(result[id].twitch, "3");
-            }, 7000);
-            setTimeout(() => {
-                that.client.action(result[id].twitch, "2");
-            }, 8000);
-            setTimeout(() => {
-                that.client.action(result[id].twitch, "1");
-            }, 9000);
-            setTimeout(() => {
-                that.client.action(result[id].twitch, "cities1Stop cities1Stop cities1Stop All building Must stop! cities1Stop cities1Stop cities1Stop ");
-            }, 10000);
-        });
-    });
+    that.announce(channel, "cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 10 seconds remain! cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 ");
+    setTimeout(() => {
+        that.announce(channel, "9 seconds");
+    }, 1000);
+    setTimeout(() => {
+        that.announce(channel, "8");
+    }, 2000);
+    setTimeout(() => {
+        that.announce(channel, "7");
+    }, 3000);
+    setTimeout(() => {
+        that.announce(channel, "6");
+    }, 4000);
+    setTimeout(() => {
+        that.announce(channel, "5");
+    }, 5000);
+    setTimeout(() => {
+        that.announce(channel, "4");
+    }, 6000);
+    setTimeout(() => {
+        that.announce(channel, "3");
+    }, 7000);
+    setTimeout(() => {
+        that.announce(channel, "2");
+    }, 8000);
+    setTimeout(() => {
+        that.announce(channel, "1");
+    }, 9000);
+    setTimeout(() => {
+        that.announce(channel, "cities1Stop cities1Stop cities1Stop All building Must stop! cities1Stop cities1Stop cities1Stop ");
+    }, 10000);
 }
 CiaS.prototype.starting = function () {
     const that = this;
