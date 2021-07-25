@@ -184,52 +184,82 @@ CiaS.prototype.tenseconds = function (channel) {
         that.announce(channel, "cities1Stop cities1Stop cities1Stop All building Must stop! cities1Stop cities1Stop cities1Stop ");
     }, 10000);
 }
-CiaS.prototype.starting = function () {
+CiaS.prototype.starting = function (channel, length) {
     const that = this;
-    let sql = `SELECT * FROM ` + this.CompetitorsTable + ` INNER JOIN ` + this.UsersTable + ` ON ` + this.CompetitorsTable + `.entrant = ` + this.UsersTable + `.id WHERE ` + this.CompetitorsTable + `.event = ` + this.event_id + ` ORDER BY ` + this.CompetitorsTable + `.id ASC`;
-    let response = this.mysql_db.query(sql, (err, result) => {
-        if (err) throw err;
-        Object.keys(result).forEach(function (id) {
-            try {
-                that.client.action(result[id].twitch, "cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 30 seconds Until Start! cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1");
+    try {
+        that.announce(channel, "cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 30 seconds Until Start! cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1");
 
-            } catch (err) {
+    } catch (err) {
 
+    }
+    setTimeout(() => {
+        try {
+            that.announce(channel, "cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 20 seconds Until Start! cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1");
+
+        } catch (err) {
+
+        }
+    }, 10000);
+    setTimeout(() => {
+        try {
+            that.announce(channel, "cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 10 seconds Until Start! cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1");
+
+        } catch (err) {
+
+        }
+    }, 20000);
+    setTimeout(() => {
+        try {
+            that.announce(channel, "cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 5 seconds Until Start! cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1");
+
+        } catch (err) {
+
+        }
+    }, 25000);
+    setTimeout(() => {
+        try {
+            that.announce(channel, "4 seconds Until Start!");
+
+        } catch (err) {
+
+        }
+    }, 26000);
+    setTimeout(() => {
+        try {
+            that.announce(channel, "3 seconds Until Start!");
+
+        } catch (err) {
+
+        }
+    }, 27000);
+    setTimeout(() => {
+        try {
+            that.announce(channel, "2 seconds Until Start!");
+
+        } catch (err) {
+
+        }
+    }, 28000);
+    setTimeout(() => {
+        try {
+            that.announce(channel, "cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 1 seconds Until Start! cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1");
+
+        } catch (err) {
+
+        }
+    }, 29000);
+    setTimeout(() => {
+        try {
+            that.announce(channel, "cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 Begin! cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1");
+            if (length !== null) {
+                that.timer(channel, length);
+            } else {
+                that.timer(channel, 120);
             }
-            setTimeout(() => {
-                try {
-                    that.client.action(result[id].twitch, "cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 20 seconds Until Start! cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1");
+        } catch (err) {
 
-                } catch (err) {
-
-                }
-            }, 10000);
-            setTimeout(() => {
-                try {
-                    that.client.action(result[id].twitch, "cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 10 seconds Until Start! cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1");
-
-                } catch (err) {
-
-                }
-            }, 20000);
-            setTimeout(() => {
-                try {
-                    that.client.action(result[id].twitch, "cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 5 seconds Until Start! cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1");
-
-                } catch (err) {
-
-                }
-            }, 25000);
-            setTimeout(() => {
-                try {
-                    that.client.action(result[id].twitch, "cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 Begin! cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1");
-
-                } catch (err) {
-
-                }
-            }, 30000);
-        });
-    });
+        }
+    }, 30000);
 }
 CiaS.prototype.refreshParticipants = function (params) {
     if (params[0] === `all`) {
