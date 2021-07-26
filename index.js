@@ -1,20 +1,30 @@
 //cias helper
+/**
+ * @param {number} length Length of Competition, in Minutes
+ * @param {string} channel Channel variable provided by tmi.js channel parameter.
+ * @param {integer} participant Participant number as non-zero integer
+ * @param {string} msg String to be conveyed as a message.
+ * @param {string} config Configuration Settings as object.
+ * @param {string} client Client object as defined by tmi.js.
+ * @param {function} callback Callback Function: function (err, res) {
+ * Do Stuff Here}.
+ */
 const mysql = require(`mysql`);
 const chalk = require('chalk');
 const NodeCache = require("node-cache");
 const participants = new NodeCache();
 module.exports = CiaS;
-function CiaS(cias, client) {
+function CiaS(config, client) {
     this.event_id = null;
     this.event_start = '';
     this.event_end = '';
     this.time_remaining = null;
     this.mysql = mysql;
-    this.mysql_host = cias.MYSQLhost;
-    this.mysql_user = cias.MYSQLuser;
-    this.mysql_password = cias.MYSQLpassword;
-    this.mysql_database = cias.MYSQLdatabase || cias.database;
-    if (cias.initialize) {
+    this.mysql_host = config.MYSQLhost;
+    this.mysql_user = config.MYSQLuser;
+    this.mysql_password = config.MYSQLpassword;
+    this.mysql_database = config.MYSQLdatabase || config.database;
+    if (config.initialize) {
         this.initialize();
     } else {
         console.log(chalk.yellow(`CiaS: Database Setup Skipped`))
@@ -27,10 +37,10 @@ function CiaS(cias, client) {
         database: this.mysql_database
     });
     this.client = client;
-    this.channel = cias.channel;
-    this.eventsTable = cias.EventsTable;
-    if (typeof cias.MYSQLtable === "undefined") { this.CompetitorsTable = cias.CompetitorsTable } else { this.CompetitorsTable = cias.MYSQLtable };
-    if (typeof cias.MYSQLtable_2 === "undefined") { this.UsersTable = cias.UsersTable } else { this.UsersTable = cias.MYSQLtable_2 };
+    this.channel = config.channel;
+    this.eventsTable = config.EventsTable;
+    if (typeof config.MYSQLtable === "undefined") { this.CompetitorsTable = config.CompetitorsTable } else { this.CompetitorsTable = config.MYSQLtable };
+    if (typeof config.MYSQLtable_2 === "undefined") { this.UsersTable = config.UsersTable } else { this.UsersTable = config.MYSQLtable_2 };
     this.competitors_sql = `SELECT * FROM ` + this.CompetitorsTable + ` INNER JOIN ` + this.UsersTable + ` ON ` + this.CompetitorsTable + `.entrant = ` + this.UsersTable + `.id WHERE ` + this.CompetitorsTable + `.event = ` + this.event_id + ` ORDER BY ` + this.CompetitorsTable + `.id ASC`;
     console.log(chalk.blue(`CiaS: Ready!`));
 }
@@ -119,10 +129,10 @@ CiaS.prototype.error = function (err) {
 }
 CiaS.prototype.fetch = function (participant, callback) {
     const that = this;
-    console.log(chalk.blue(`Fetching Participant ${participant}... `));
+    console.log(chalk.blue(`CiaS: Fetching Participant ${participant}... `));
     let value = participants.get(`${participant}`);
     if (value == undefined) {
-        console.log(chalk.red(`No Participants Found. Fetching from remote db.....`));
+        console.log(chalk.red(`CiaS: No Participants Found. Fetching from remote db.....`));
         let sql = `SELECT * FROM ` + that.CompetitorsTable + ` INNER JOIN ` + that.UsersTable + ` ON ` + that.CompetitorsTable + `.entrant = ` + that.UsersTable + `.id WHERE ` + that.CompetitorsTable + `.event = ` + that.event_id + ` ORDER BY ` + that.CompetitorsTable + `.id ASC`;
         let response = that.mysql_db.query(sql, (err, result) => {
             if (err) throw err;
@@ -131,7 +141,7 @@ CiaS.prototype.fetch = function (participant, callback) {
                 obj = { id: `${result[id].id}`, name: `${result[id].name}`, twitch: `${result[id].twitch}` };
                 success = participants.set(`${i + 1}`, obj, (24 * 3600));
                 if (participant == count) {
-                    console.log(chalk.green(`Remote Participant Found!`));
+                    console.log(chalk.green(`CiaS: Remote Participant Found!`));
                     return callback(null, result[id]);
                 }
             });
@@ -150,7 +160,7 @@ CiaS.prototype.fetchall = function (callback) {
         let sql = `SELECT * FROM ` + that.CompetitorsTable + ` INNER JOIN ` + that.UsersTable + ` ON ` + that.CompetitorsTable + `.entrant = ` + that.UsersTable + `.id WHERE ` + that.CompetitorsTable + `.event = ` + that.event_id + ` ORDER BY ` + that.CompetitorsTable + `.id ASC`;
         let response = that.mysql_db.query(sql, (err, result) => {
             if (err) throw err;
-            console.log(chalk.green(`Remote Participants Found!`));
+            console.log(chalk.green(`CiaS: Remote Participants Found!`));
             Object.keys(result).forEach(function (id, i) {
                 let count = i + 1;
                 obj = { id: `${result[id].id}`, name: `${result[id].name}`, twitch: `${result[id].twitch}` };
@@ -159,15 +169,15 @@ CiaS.prototype.fetchall = function (callback) {
             return callback(null, result);
         });
     } else {
-        console.log(chalk.green(`Local Participants Found!`));
+        console.log(chalk.green(`CiaS: Local Participants Found!`));
         value = participants.mget(["1", "2", "3", "4"]);
         return callback(null, value);
     }
 }
-CiaS.prototype.timer = async function (channel, i) {
+CiaS.prototype.timer = async function (channel, length) {
     const that = this;
-    console.log(`${i} minutes remaining`);
-    i = i * 60;
+    console.log(`${length} minutes remaining`);
+    i = length * 60;
     var myVar = setInterval(function () {
         i--;
         if (i == (105 * 60)) {
@@ -231,7 +241,9 @@ CiaS.prototype.starting = function (channel, length) {
     setTimeout(() => { that.announce(channel, "cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 1 seconds Until Start! cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1"); }, 29000);
     setTimeout(() => {
         that.announce(channel, "cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 Begin! cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1");
-        if (length !== null) {
+        if (length == 0) {
+
+        } else if (length !== null) {
             that.timer(channel, length);
         } else {
             that.timer(channel, 120);
