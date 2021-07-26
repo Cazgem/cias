@@ -71,7 +71,7 @@ CiaS.prototype.route = function (participant, msg) {
         this.error(err);
     }
 }
-CiaS.prototype.join = function () {
+CiaS.prototype.join = function (callback = null) {
     const that = this;
     try {
         this.fetchall(function (err, res) {
@@ -79,12 +79,15 @@ CiaS.prototype.join = function () {
             Object.keys(res).forEach(function (id) {
                 that.client.join(res[id].twitch);
             });
+            if (callback) {
+                callback(err, res);
+            }
         });
     } catch (err) {
         this.error(err);
     }
 }
-CiaS.prototype.part = function () {
+CiaS.prototype.part = function (callback = null) {
     const that = this;
     try {
         this.fetchall(function (err, res) {
@@ -92,6 +95,9 @@ CiaS.prototype.part = function () {
             Object.keys(res).forEach(function (id) {
                 that.client.part(res[id].twitch);
             });
+            if (callback) {
+                callback(err, res);
+            }
         });
     } catch (err) {
         this.error(err);
