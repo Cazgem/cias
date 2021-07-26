@@ -1,4 +1,4 @@
-# cias
+# CiaS
 
 ```javascript
 npm install cias
@@ -123,4 +123,4 @@ A valid, non-zero integer (or decimal) will result in the starting countdown fol
 A length of 0 will result in the starting countdown running on its' own.
 
 
-Developed by Cazgem (https://twitch.tv/cazgem) for use as part of cities in a snap, and Games in a Snap (https://twitch.tv/gamesinasnap) specifically for his chatbot, Polyphony.
+Developed by Cazgem (https://cazgem.com) for use as part of cities in a snap, and Games in a Snap (https://twitch.tv/gamesinasnap) specifically for his chatbot, Polyphony.
