@@ -68,9 +68,27 @@ client.on('message', function (channel, context, msg, self) {
                 }
             });
         } else if ((params[0] == 'join') && ((context.mod) || (context['room-id'] === context['user-id']))) {
-            cias.join();
+            cias.participants(function (err, res) {
+                Object.keys(res).forEach(function (id) {
+                    try {
+                        client.join(res[id].twitch);
+                    } catch (err) {
+                        console.log(chalk.red(`-----------ERROR-----------`));
+                        console.log(`${err}`);
+                    }
+                });
+            });
         } else if ((params[0] == 'part') && ((context.mod) || (context['room-id'] === context['user-id']))) {
-            cias.part();
+            cias.participants(function (err, res) {
+                Object.keys(res).forEach(function (id) {
+                    try {
+                        client.part(res[id].twitch);
+                    } catch (err) {
+                        console.log(chalk.red(`-----------ERROR-----------`));
+                        console.log(`${err}`);
+                    }
+                });
+            });
         } else if ((_cname == `event`) && ((context.mod) || (context['room-id'] === context['user-id']))) {
             console.log('Event Close')
             if (params[1] == 'close') {

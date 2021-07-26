@@ -4,31 +4,41 @@ const chalk = require('chalk');
 const NodeCache = require("node-cache");
 const participants = new NodeCache();
 module.exports = CiaS;
-function CiaS(ciasOPTS, client) {
-    console.log(chalk.blue(`CiaS Module Ready!`));
+function CiaS(cias, client) {
     this.event_id = null;
     this.event_start = '';
     this.event_end = '';
     this.time_remaining = null;
+    this.mysql = mysql;
+    this.mysql_host = cias.MYSQLhost;
+    this.mysql_user = cias.MYSQLuser;
+    this.mysql_password = cias.MYSQLpassword;
+    this.mysql_database = cias.MYSQLdatabase || cias.database;
+    if (cias.initialize) {
+        this.initialize();
+    } else {
+        console.log(chalk.yellow(`CiaS: Database Setup Skipped`))
+    }
     this.mysql_db = mysql.createPool({
         connectionLimit: 10,
-        host: ciasOPTS.MYSQLhost,
-        user: ciasOPTS.MYSQLuser,
-        password: ciasOPTS.MYSQLpassword,
-        database: ciasOPTS.MYSQLdatabase || ciasOPTS.database
+        host: this.mysql_host,
+        user: this.mysql_user,
+        password: this.mysql_password,
+        database: this.mysql_database
     });
     this.client = client;
-    this.channel = ciasOPTS.channel;
-    this.eventsTable = ciasOPTS.EventsTable;
-    if (typeof ciasOPTS.MYSQLtable === "undefined") { this.CompetitorsTable = ciasOPTS.CompetitorsTable } else { this.CompetitorsTable = ciasOPTS.MYSQLtable };
-    if (typeof ciasOPTS.MYSQLtable_2 === "undefined") { this.UsersTable = ciasOPTS.UsersTable } else { this.UsersTable = ciasOPTS.MYSQLtable_2 };
+    this.channel = cias.channel;
+    this.eventsTable = cias.EventsTable;
+    if (typeof cias.MYSQLtable === "undefined") { this.CompetitorsTable = cias.CompetitorsTable } else { this.CompetitorsTable = cias.MYSQLtable };
+    if (typeof cias.MYSQLtable_2 === "undefined") { this.UsersTable = cias.UsersTable } else { this.UsersTable = cias.MYSQLtable_2 };
     this.competitors_sql = `SELECT * FROM ` + this.CompetitorsTable + ` INNER JOIN ` + this.UsersTable + ` ON ` + this.CompetitorsTable + `.entrant = ` + this.UsersTable + `.id WHERE ` + this.CompetitorsTable + `.event = ` + this.event_id + ` ORDER BY ` + this.CompetitorsTable + `.id ASC`;
+    console.log(chalk.blue(`CiaS: Ready!`));
 }
 CiaS.prototype.announce = function (channel, msg) {
     const that = this;
     try {
         this.fetchall(function (err, res) {
-            console.log(chalk.yellow(`Announcement: ${msg}`));
+            console.log(chalk.yellow(`CiaS: <Announcement> ${msg}`));
             if (channel !== null) {
                 that.client.action(channel, msg);
             }
@@ -37,96 +47,75 @@ CiaS.prototype.announce = function (channel, msg) {
             });
         });
     } catch (err) {
-
+        this.error(err);
     }
 }
-CiaS.prototype.timer = async function (channel, i) {
+CiaS.prototype.route = function (participant, msg) {
     const that = this;
-    console.log(`${i} minutes remaining`);
-    i = i * 60;
-    var myVar = setInterval(function () {
-        i--;
-        if (i == (105 * 60)) {
-            that.timeRemaining(`1 Hour, 45 minutes remain!`, function (err, res) {
-                that.announce(channel, res);
+    try {
+        this.fetch(participant, function (err, res) {
+            console.log(chalk.yellow(`CiaS: Routing to Participant ${participant}: ${msg}`));
+            that.client.action(res.twitch, msg);
+        });
+    } catch (err) {
+        this.error(err);
+    }
+}
+CiaS.prototype.join = function () {
+    const that = this;
+    try {
+        this.fetchall(function (err, res) {
+            console.log(chalk.yellow(`CiaS: Join`));
+            Object.keys(res).forEach(function (id) {
+                that.client.join(res[id].twitch);
             });
-        } else if (i == (90 * 60)) {
-            that.timeRemaining(`1 Hour, 30 minutes remain!`, function (err, res) {
-                that.announce(channel, res);
+        });
+    } catch (err) {
+        this.error(err);
+    }
+}
+CiaS.prototype.part = function () {
+    const that = this;
+    try {
+        this.fetchall(function (err, res) {
+            console.log(chalk.yellow(`CiaS: Part`));
+            Object.keys(res).forEach(function (id) {
+                that.client.part(res[id].twitch);
             });
-        } else if (i == (75 * 60)) {
-            that.timeRemaining(`1 Hour, 15 minutes remain!`, function (err, res) {
-                that.announce(channel, res);
-            });
-        } else if (i == (60 * 60)) {
-            that.timeRemaining(`60 minutes remain!`, function (err, res) {
-                that.announce(channel, res);
-            });
-        } else if (i == (45 * 60)) {
-            that.timeRemaining(`45 minutes remain!`, function (err, res) {
-                that.announce(channel, res);
-            });
-        } else if (i == (30 * 60)) {
-            that.timeRemaining(`30 minutes remain!`, function (err, res) {
-                that.announce(channel, res);
-            });
-        } else if (i == (15 * 60)) {
-            that.timeRemaining(`15 minutes remain!`, function (err, res) {
-                that.announce(channel, res);
-            });
-        } else if (i == (10 * 60)) {
-            that.timeRemaining(`10 minutes remain!`, function (err, res) {
-                that.announce(channel, res);
-            });
-        } else if (i == (5 * 60)) {
-            that.timeRemaining(`5 minutes remain!`, function (err, res) {
-                that.announce(channel, res);
-            });
-        } else if (i == (3 * 60)) {
-            that.timeRemaining(`3 minutes remain!`, function (err, res) {
-                that.announce(channel, res);
-            });
-        } else if (i == (2 * 60)) {
-            that.timeRemaining(`2 minutes remain!`, function (err, res) {
-                that.announce(channel, res);
-            });
-        } else if (i == (1.5 * 60)) {
-            that.timeRemaining(`90 seconds left!`, function (err, res) {
-                that.announce(channel, res);
-            });
-        } else if (i == (1 * 60)) {
-            that.timeRemaining(`60 seconds!`, function (err, res) {
-                that.announce(channel, res);
-            });
-        } else if (i == (45)) {
-            that.timeRemaining(`45 seconds left!`, function (err, res) {
-                that.announce(channel, res);
-            });
-        } else if (i == (30)) {
-            that.timeRemaining(`30 seconds left!`, function (err, res) {
-                that.announce(channel, res);
-            });
-        } else if (i == (15)) {
-            that.timeRemaining(`15 seconds!`, function (err, res) {
-                that.announce(channel, res);
-            });
-        } else if (i == 10) {
-            that.tenseconds(channel);
-            clearInterval(myVar);
-        }
-    }, 1000);
+        });
+    } catch (err) {
+        this.error(err);
+    }
 }
 CiaS.prototype.timeRemaining = function (timeleft, callback) {
     const that = this;
     let res = `cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1 ${timeleft} cities1Stopwatch1 cities1Stopwatch1 cities1Stopwatch1`;
     return callback(null, res);
 }
-CiaS.prototype.route = function (participant, msg) {
+CiaS.prototype.participant = function (participant, callback) {
     const that = this;
-    this.fetch(participant, function (err, res) {
-        console.log(chalk.yellow(`Routing to Participant ${participant}: ${msg}`));
-        that.client.action(res.twitch, msg);
-    });
+    if (this.event_id == null) {
+        return callback(`No Event Selected!`, null);
+    } else {
+        this.fetch(participant, function (err, res) {
+            return callback(null, res);
+        });
+    }
+}
+CiaS.prototype.participants = function (callback) {
+    const that = this;
+    if (this.event_id == null) {
+        return callback(`No Event Selected!`, null);
+    } else {
+        this.fetchall(function (err, res) {
+            return callback(null, res);
+        });
+    }
+}
+CiaS.prototype.error = function (err) {
+    console.log(chalk.red(`-------- CiaS ERROR -------`));
+    console.log(`${err}`);
+    console.log(chalk.red(`---------------------------`));
 }
 CiaS.prototype.fetch = function (participant, callback) {
     const that = this;
@@ -175,51 +164,46 @@ CiaS.prototype.fetchall = function (callback) {
         return callback(null, value);
     }
 }
-CiaS.prototype.join = function () {
+CiaS.prototype.timer = async function (channel, i) {
     const that = this;
-    this.fetchall(function (err, res) {
-        Object.keys(res).forEach(function (id) {
-            try {
-                that.client.join(res[id].twitch);
-            } catch (err) {
-                console.log(chalk.red(`-----------ERROR-----------`));
-                console.log(`${err}`);
-            }
-        });
-    });
-}
-CiaS.prototype.part = function () {
-    const that = this;
-    this.fetchall(function (err, res) {
-        Object.keys(res).forEach(function (id) {
-            try {
-                that.client.part(res[id].twitch);
-            } catch (err) {
-                console.log(chalk.red(`-----------ERROR-----------`));
-                console.log(`${err}`);
-            }
-        });
-    });
-}
-CiaS.prototype.participant = function (participant, callback) {
-    const that = this;
-    if (this.event_id == null) {
-        return callback(`No Event Selected!`, null);
-    } else {
-        this.fetch(participant, function (err, res) {
-            return callback(null, res);
-        });
-    }
-}
-CiaS.prototype.participants = function (callback) {
-    const that = this;
-    if (this.event_id == null) {
-        return callback(`No Event Selected!`, null);
-    } else {
-        this.fetchall(function (err, res) {
-            return callback(null, res);
-        });
-    }
+    console.log(`${i} minutes remaining`);
+    i = i * 60;
+    var myVar = setInterval(function () {
+        i--;
+        if (i == (105 * 60)) {
+            that.timeRemaining(`1 Hour, 45 minutes remain!`, function (err, res) { that.announce(channel, res); });
+        } else if (i == (90 * 60)) {
+            that.timeRemaining(`1 Hour, 30 minutes remain!`, function (err, res) { that.announce(channel, res); });
+        } else if (i == (75 * 60)) {
+            that.timeRemaining(`1 Hour, 15 minutes remain!`, function (err, res) { that.announce(channel, res); });
+        } else if (i == (60 * 60)) {
+            that.timeRemaining(`60 minutes remain!`, function (err, res) { that.announce(channel, res); });
+        } else if (i == (45 * 60)) {
+            that.timeRemaining(`45 minutes remain!`, function (err, res) { that.announce(channel, res); });
+        } else if (i == (30 * 60)) {
+            that.timeRemaining(`30 minutes remain!`, function (err, res) { that.announce(channel, res); });
+        } else if (i == (15 * 60)) {
+            that.timeRemaining(`15 minutes remain!`, function (err, res) { that.announce(channel, res); });
+        } else if (i == (10 * 60)) {
+            that.timeRemaining(`10 minutes remain!`, function (err, res) { that.announce(channel, res); });
+        } else if (i == (5 * 60)) {
+            that.timeRemaining(`5 minutes remain!`, function (err, res) { that.announce(channel, res); });
+        } else if (i == (3 * 60)) {
+            that.timeRemaining(`3 minutes remain!`, function (err, res) { that.announce(channel, res); });
+        } else if (i == (2 * 60)) {
+            that.timeRemaining(`2 minutes remain!`, function (err, res) { that.announce(channel, res); });
+        } else if (i == (1.5 * 60)) {
+            that.timeRemaining(`90 seconds left!`, function (err, res) { that.announce(channel, res); });
+        } else if (i == (1 * 60)) {
+            that.timeRemaining(`60 seconds!`, function (err, res) { that.announce(channel, res); });
+        } else if (i == (45)) {
+            that.timeRemaining(`45 seconds left!`, function (err, res) { that.announce(channel, res); });
+        } else if (i == (30)) {
+            that.timeRemaining(`30 seconds left!`, function (err, res) { that.announce(channel, res); });
+        } else if (i == (15)) {
+            that.timeRemaining(`15 seconds!`, function (err, res) { that.announce(channel, res); });
+        } else if (i == 10) { that.tenseconds(channel); clearInterval(myVar); }
+    }, 1000);
 }
 CiaS.prototype.tenseconds = function (channel) {
     const that = this;
@@ -253,4 +237,68 @@ CiaS.prototype.starting = function (channel, length) {
             that.timer(channel, 120);
         }
     }, 30000);
+}
+CiaS.prototype.initialize = async function () {
+    const that = this;
+    var con = that.mysql.createConnection({
+        host: that.mysql_host,
+        user: that.mysql_user,
+        password: that.mysql_password
+    });
+
+    con.connect(function (err) {
+        if (err) throw err;
+        con.query(`CREATE DATABASE IF NOT EXISTS ${that.mysql_database}`, function (err, result) {
+            if (err) throw err;
+            that.createTables();
+            console.log(chalk.cyan(`CiaS: Database is Ready!`));
+        });
+    });
+
+}
+CiaS.prototype.createTables = function () {
+    var con = this.mysql.createConnection({
+        host: this.mysql_host,
+        user: this.mysql_user,
+        password: this.mysql_password,
+        database: this.mysql_database
+    });
+    var sql = ['CREATE TABLE IF NOT EXISTS`' + this.UsersTable + '` (\n' +
+        '  `id` int(6) unsigned zerofill NOT NULL AUTO_INCREMENT,\n' +
+        '  `name` varchar(255) NOT NULL,\n' +
+        '  `twitch` varchar(255) NOT NULL,\n' +
+        '  `twitch_id` int(12) DEFAULT NULL,\n' +
+        '  `discord` varchar(255) NOT NULL,\n' +
+        '  `youtube` varchar(255) DEFAULT NULL,\n' +
+        '  `email` varchar(255) NOT NULL,\n' +
+        '  `event` varchar(6) NOT NULL,\n' +
+        '  `howdidyouhear` varchar(25555) NOT NULL,\n' +
+        '  `time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,\n' +
+        '  `confirmation` varchar(50) NOT NULL,\n' +
+        '  `image` varchar(500) DEFAULT NULL,\n' +
+        '  PRIMARY KEY (`id`)\n' +
+        ') ENGINE=InnoDB AUTO_INCREMENT=47 DEFAULT CHARSET=latin1', 'CREATE TABLE IF NOT EXISTS`' + this.EventsTable + '` (\n' +
+        '  `id` int(6) unsigned zerofill NOT NULL AUTO_INCREMENT,\n' +
+        '  `name` varchar(255) NOT NULL,\n' +
+        '  `description` varchar(25555) NOT NULL,\n' +
+        '  `image` varchar(255) NOT NULL,\n' +
+        '  `game` int(6) NOT NULL,\n' +
+        '  `slug` varchar(25) NOT NULL,\n' +
+        '  `datetime` datetime DEFAULT NULL,\n' +
+        '  `created` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,\n' +
+        '  PRIMARY KEY (`id`),\n' +
+        '  UNIQUE KEY `slug` (`slug`)\n' +
+    ') ENGINE=InnoDB AUTO_INCREMENT=14 DEFAULT CHARSET=latin1', 'CREATE TABLE IF NOT EXISTS`' + this.CompetitorsTable + '` (\n' +
+    '  `id` int(6) unsigned zerofill NOT NULL AUTO_INCREMENT,\n' +
+    '  `entrant` int(6) unsigned zerofill NOT NULL,\n' +
+    '  `event` int(6) unsigned zerofill NOT NULL,\n' +
+    "  `winner` tinyint(1) NOT NULL DEFAULT '0',\n" +
+    '  PRIMARY KEY (`id`,`event`)\n' +
+    ') ENGINE=InnoDB AUTO_INCREMENT=56 DEFAULT CHARSET=latin1'];
+    sql.forEach(element => {
+        con.query(element, function (err, result) {
+            if (err) throw err;
+        });
+    });
+
 }
