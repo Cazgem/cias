@@ -174,6 +174,23 @@ CiaS.prototype.fetchall = function (callback) {
         return callback(null, value);
     }
 }
+CiaS.prototype.refresh = function (callback) {
+    const that = this;
+    console.log(chalk.blue(`Refreshing Participants... `));
+    participants.flushAll();
+    let sql = `SELECT * FROM ` + that.CompetitorsTable + ` INNER JOIN ` + that.UsersTable + ` ON ` + that.CompetitorsTable + `.entrant = ` + that.UsersTable + `.id WHERE ` + that.CompetitorsTable + `.event = ` + that.event_id + ` ORDER BY ` + that.CompetitorsTable + `.id ASC`;
+    let response = that.mysql_db.query(sql, (err, result) => {
+        if (err) throw err;
+        console.log(chalk.green(`CiaS: Remote Participants Found!`));
+        Object.keys(result).forEach(function (id, i) {
+            let count = i + 1;
+            obj = { id: `${result[id].id}`, name: `${result[id].name}`, twitch: `${result[id].twitch}` };
+            success = participants.set(`${i + 1}`, obj, (24 * 3600));
+        });
+        console.log(chalk.cyan(`CiaS: Participants Updated`));
+        callback(null, true);
+    });
+}
 CiaS.prototype.timer = async function (channel, length) {
     const that = this;
     console.log(`${length} minutes remaining`);

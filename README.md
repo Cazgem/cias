@@ -83,6 +83,13 @@ Returns All Participants as objects based on the event in question.
 cias.participants(callback);
 ```
 
+### Refresh
+Refreshes Participants list.
+
+```javascript
+cias.refresh(callback);
+```
+
 ### Errors
 Runs the CiaS Module's Error Module. (mostly for internal use)
 
