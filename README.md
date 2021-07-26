@@ -7,38 +7,35 @@ npm install cias
 
 npm install mysql
 npm install tmi.js
-npm install polyphony.js
-npm install obs-websocket-js
 ```
 
-This library is meant to act as an extension to polyphony.js to allow for the smooth management and performance of the weekly city-building competition, Cities in a Snap and other E-Sport events.
+This library is meant to act as a twitch bot extension to allow for the smooth management and performance of Games in a Snap and other E-Sport events. It originally was written for the "Cities in a Snap" event, which Games in a Snap grew out of.
 
 ## BEFORE YOU BEGIN
-Make a MySQL database table with at least two columns, number and name to correspond to the four participant spots. This will be more flexible in the future, but for now this is how it is.
-
-
-Then run the `twitchCPR.list` function (details below) to get your individual reward IDs.
+Reserved.
 
 ## Implementation
 
 ### Includes
 ```javascript
 
-const tmi = require('tmi.js'); // Recommended for chat functionality, though not strictly necessary to function.
-const mysql = require(`mysql`);
-const config = require('./config'); // Great to store variables safely
+const mysql = require(`mysql`);     // Requirement
+const tmi = require('tmi.js');      // Recommended for chat functionality, though not strictly necessary to function.
+const config = require('./config'); // Recommended to store variables safely
 ```
 
 ### Building the Config
 ```javascript
     const ciasOPTS = {
-        OBSaddress: config.default.obs_address, //Your Host Computer's IP address and websocket port no. (4444 by default)
-        OBSpassword: config.default.obs_pass, // Your OBS websocket password (If it exists!)
-        MYSQLhost: config.mysql.host, // The location of your database (either localhost, or an IP address if a different server location)
-        MYSQLuser: config.mysql.user, // MySQL Username
-        MYSQLpassword: config.mysql.password, // MySQL Password
-        MYSQLdatabase: config.mysql.database, // MySQL Database Name
-        MYSQLtable: `CiaS_Participants` // Participants table name within your database
+        initialize: true,                           // Required true/false to initialize DB and Table automatically using the parameters given. Recommended for first use.
+        MYSQLhost: `path.to.host`,                  // Required
+        MYSQLuser: `sqlUser`,                       // Required
+        MYSQLpassword: `sqlPassword`,               // Required
+        MYSQLdatabase: `<db_name>`,                 // Required
+        EventsTable: `<events_table>`,              // Required
+        CompetitorsTable: `<competitors_table>`,    // Required
+        UsersTable: `<UsersRegistration_table>`,    // Required
+        channel: `<YourChannel>`                    // Required
     }
 ```
 
@@ -48,29 +45,82 @@ const config = require('./config'); // Great to store variables safely
 Announces the input text to all participants in an event.
 
 ```javascript
-cias.announce(client, msg, context, channel, ciasOPTS);
+cias.announce(channel, msg);
+```
+
+### Route
+Announces the input text to a single participant as specified.
+
+```javascript
+cias.announce(participant, msg);
+```
+
+### Join
+Same as tmi.js client.join(), but cycles through current participants.
+
+```javascript
+cias.join();
+```
+
+### Part
+Same as tmi.js client.part(), but cycles through current participants.
+
+```javascript
+cias.part();
+```
+
+### Participant
+Returns single Participant object based on the number given for the event in question.
+
+```javascript
+cias.participant(participant, callback);
 ```
 
 ### Participants
-Calls and Alters the Participant Database.
+Returns All Participants as objects based on the event in question.
 
 ```javascript
-cias.participants(client, params, context, channel, ciasOPTS);
+cias.participants(callback);
+```
+
+### Errors
+Runs the CiaS Module's Error Module. (mostly for internal use)
+
+```javascript
+cias.error(err);
+```
+
+### Set Event Number
+Sets the event number for the rest of the module to operate on. See the example for details on how to implement.
+
+```javascript
+cias.event_id = number;
+```
+
+### Timer
+Manually runs the CiaS Module's Timer for a length of time (in minutes, float).
+
+```javascript
+cias.timer(channel, length);
 ```
 
 ### Ten Seconds Remaining
-Calls and Alters the Participant Database.
+Calls the final 10 seconds sequence.
 
 ```javascript
-cias.tenseconds(client, ciasOPTS);
+cias.tenseconds(channel);
 ```
 
 ### Starting Timer (30 seconds)
-Calls and Alters the Participant Database.
+Starts the event. Length (optional) is a value in minutes.
 
 ```javascript
-cias.starting(client, ciasOPTS);
+cias.starting(channel, length);
 ```
+Notes:
+A length of 0 will result in the starting countdown running on its' own.
+A valid, non-zero integer (or decimal) will result in the starting countdown followed by the event timer starting.
+A length of 0 will result in the starting countdown running on its' own.
 
 
-Developed by Cazgem (https://twitch.tv/cazgem) for use as part of cities in a snap (https://twitch.tv/citiesinasnap) as well as for his chatbot, Polyphony.
+Developed by Cazgem (https://twitch.tv/cazgem) for use as part of cities in a snap, and Games in a Snap (https://twitch.tv/gamesinasnap) specifically for his chatbot, Polyphony.

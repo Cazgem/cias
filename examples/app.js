@@ -1,7 +1,11 @@
 const config = require(`./config`)
-const CiaS = require(`../index.js`);
+const CiaS = require(`cias`);
 const chalk = require('chalk');
+const tmi = require('tmi.js');
+const client = new tmi.client(config);
+client.connect();
 const ciasOPTS = {
+    initialize: true,
     MYSQLhost: config.mysql.host,
     MYSQLuser: config.mysql.user,
     MYSQLpassword: config.mysql.password,
@@ -11,20 +15,12 @@ const ciasOPTS = {
     UsersTable: `Registration`,
     channel: `gamesinasnap`
 }
-const tmi = require('tmi.js');
-const client = new tmi.client(config);
-client.connect();
-const cias = new CiaS(ciasOPTS, client);
-cias.event_id = 13;
 client.on('connected', async () => {
+    const cias = new CiaS(ciasOPTS, client);
+    cias.event_id = 13;
 })
 client.on('message', function (channel, context, msg, self) {
     const chan = channel.slice(1).toLowerCase();
-    if (msg.toLowerCase().includes('cazgem')) {
-        console.log(chalk.red(`--------------------------NOTICE!-----------------------------`));
-    } else if (msg.toLowerCase().includes('polyphony')) {
-        console.log(chalk.cyan(`--------------------------NOTICE!-----------------------------`));
-    }
     if (self) { return; }
     let params = msg.slice(1).split(' ');
     let cname = params.shift().toLowerCase();
@@ -48,11 +44,7 @@ client.on('message', function (channel, context, msg, self) {
         } else if (params[0] == 'participants') {
             cias.participants(function (err, res) {
                 if (err) {
-                    client.action(channel, `${err}`);
-                    personality.followup(function (err, res) {
-                        client.action(channel, `${res}`);
-                    });
-
+                    cias.error(err);
                 } else {
                     if (typeof res[0] !== `undefined`) {
                         try { client.action(channel, `Participant 1 (${res[0].name}): https://twitch.tv/${res[0].twitch}`); } catch (err) { }
