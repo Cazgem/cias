@@ -71,37 +71,74 @@ CiaS.prototype.route = function (participant, msg) {
         this.error(err);
     }
 }
-CiaS.prototype.join = function (callback = null) {
+CiaS.prototype.join = function (callback) {
     const that = this;
     try {
         this.fetchall(function (err, res) {
-            console.log(chalk.yellow(`CiaS: Join`));
             Object.keys(res).forEach(function (id) {
                 that.client.join(res[id].twitch);
             });
             if (callback) {
-                callback(err, res);
+                return callback(err, res);
             }
         });
     } catch (err) {
         this.error(err);
     }
 }
-CiaS.prototype.part = function (callback = null) {
+CiaS.prototype.part = function (callback) {
     const that = this;
     try {
         this.fetchall(function (err, res) {
-            console.log(chalk.yellow(`CiaS: Part`));
             Object.keys(res).forEach(function (id) {
                 that.client.part(res[id].twitch);
             });
             if (callback) {
-                callback(err, res);
+                return callback(err, res);
             }
         });
     } catch (err) {
         this.error(err);
     }
+}
+CiaS.prototype.setEvent = function (event, callback) {
+    const that = this;
+    console.log(chalk.cyan(`CiaS: Setting Event to ${event}`));
+    try {
+        if (that.event_id != null) {
+            that.part(function (err, res) {
+                if (!err) {
+                    console.log(chalk.cyan(`CiaS: Left Previous Participants' Chats`));
+                    that._setEvent(event, function (err, res) {
+                        if (!err) {
+                            return callback(null, `Event ${that.event_id} Selected`);
+                        }
+                    });
+                }
+            });
+        } else {
+            that._setEvent(event, function (err, res) {
+                if (!err) {
+                    return callback(null, `Event ${that.event_id} Selected`);
+                }
+            });
+        }
+    } catch (err) {
+        this.error(err);
+    }
+}
+CiaS.prototype._setEvent = function (event, callback) {
+    const that = this;
+    this.event_id = event;
+    that.refresh(function (err, res) {
+        if (!err) {
+            console.log(chalk.green(`Event ${that.event_id} Selected`));
+            that.join(function (err, res) {
+                console.log(chalk.cyan(`CiaS: Joined Participants' Chats`));
+                return callback(null, `Event ${that.event_id} Selected`);
+            });
+        }
+    });
 }
 CiaS.prototype.timeRemaining = function (timeleft, callback) {
     const that = this;
@@ -159,7 +196,7 @@ CiaS.prototype.fetch = function (participant, callback) {
 }
 CiaS.prototype.fetchall = function (callback) {
     const that = this;
-    console.log(chalk.blue(`Fetching Participants... `));
+    console.log(chalk.blue(`CiaS: Fetching Participants... `));
     let value = participants.get(`1`);
     if (value == undefined) {
         console.log(chalk.red(`No Participants Found. Fetching from remote db.....`));
