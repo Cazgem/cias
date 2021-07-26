@@ -7,11 +7,9 @@ npm install cias
 
 npm install mysql
 npm install tmi.js
-npm install polyphony.js
-npm install obs-websocket-js
 ```
 
-This library is meant to act as an extension to polyphony.js to allow for the smooth management and performance of the weekly city-building competition, Cities in a Snap and other E-Sport events.
+This library is meant to act as a twitch bot extension to allow for the smooth management and performance of Games in a Snap and other E-Sport events.
 
 ## BEFORE YOU BEGIN
 Make a MySQL database table with at least two columns, number and name to correspond to the four participant spots. This will be more flexible in the future, but for now this is how it is.
