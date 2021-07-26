@@ -83,6 +83,13 @@ Returns All Participants as objects based on the event in question.
 cias.participants(callback);
 ```
 
+### Refresh
+Refreshes Participants list.
+
+```javascript
+cias.refresh(callback);
+```
+
 ### Errors
 Runs the CiaS Module's Error Module. (mostly for internal use)
 
@@ -91,10 +98,10 @@ cias.error(err);
 ```
 
 ### Set Event Number
-Sets the event number for the rest of the module to operate on. See the example for details on how to implement.
+Sets the event number (integer) for the rest of the module to operate on. See the example for details on how to implement.
 
 ```javascript
-cias.event_id = number;
+cias.setEvent(event, callback);
 ```
 
 ### Timer
