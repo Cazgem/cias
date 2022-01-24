@@ -101,9 +101,29 @@ CiaS.prototype.part = function (callback) {
         this.error(err);
     }
 }
-CiaS.prototype.setEvent = function (event, callback) {
+CiaS.prototype.setEvent = function (event, callback, polyphony) {
     const that = this;
     console.log(chalk.cyan(`CiaS: Setting Event to ${event}`));
+    if (!polyphony){
+        this.setEvent_noPolyphony();
+    } else {
+        this.setEvent_withPolyphony();
+    }
+}
+CiaS.prototype._setEvent = function (event, callback, polyphony) {
+    const that = this;
+    this.event_id = event;
+    that.refresh(function (err, res) {
+        if (!err) {
+            console.log(chalk.green(`Event ${that.event_id} Selected`));
+            that.join(function (err, res) {
+                console.log(chalk.cyan(`CiaS: Joined Participants' Chats`));
+                return callback(null, `Event ${that.event_id} Selected`);
+            });
+        }
+    });
+}
+CiaS.prototype.setEvent_noPolyphony = function (callback) {
     try {
         if (that.event_id != null) {
             that.part(function (err, res) {
@@ -126,19 +146,6 @@ CiaS.prototype.setEvent = function (event, callback) {
     } catch (err) {
         this.error(err);
     }
-}
-CiaS.prototype._setEvent = function (event, callback) {
-    const that = this;
-    this.event_id = event;
-    that.refresh(function (err, res) {
-        if (!err) {
-            console.log(chalk.green(`Event ${that.event_id} Selected`));
-            that.join(function (err, res) {
-                console.log(chalk.cyan(`CiaS: Joined Participants' Chats`));
-                return callback(null, `Event ${that.event_id} Selected`);
-            });
-        }
-    });
 }
 CiaS.prototype.timeRemaining = function (timeleft, callback) {
     const that = this;
